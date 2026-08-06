@@ -1,0 +1,67 @@
+# ---------- macOS ----------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+.fseventsd
+.TemporaryItems
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# ---------- Windows ----------
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.stackdump
+
+# ---------- Linux ----------
+*~
+.directory
+.Trash-*
+.nfs*
+
+# ---------- editory a IDE ----------
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.history/
+*.code-workspace
+
+# ---------- nástroje ----------
+.claude/
+.cursor/
+
+# ---------- Node (pro jistotu, kdyby přibyl build) ----------
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+package-lock.json.bak
+dist/
+build/
+.cache/
+.parcel-cache/
+
+# ---------- prostředí a nasazení ----------
+.env
+.env.*
+!.env.example
+.vercel/
+
+# ---------- logy a dočasné soubory ----------
+*.log
+*.tmp
+*.bak

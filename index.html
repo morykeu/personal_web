@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Kryštof Moravec — sítě, bezpečnost, AI</title>
+<meta name="description" content="Kryštof Moravec — student sítí a kyberbezpečnosti z Ostravy, od září na VUT FEKT v Brně. Cisco, firewally FortiGate, optika a praktické využití AI.">
+<meta name="author" content="Kryštof Moravec">
+<meta name="theme-color" content="#05050a">
+
+<!-- TODO: po nasazení nahradit skutečnou produkční adresou (např. https://krystofmoravec.cz/)
+     a stejnou hodnotu doplnit i do og:url níže. -->
+<link rel="canonical" href="https://example.com/">
+
+<meta property="og:title" content="Kryštof Moravec — sítě, bezpečnost, AI">
+<meta property="og:description" content="Student sítí a kyberbezpečnosti z Ostravy, od září na VUT FEKT v Brně. Cisco, firewally FortiGate, optika a praktické využití AI.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="cs_CZ">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:site_name" content="Kryštof Moravec">
+<!-- TODO: doplnit po nasazení, stejně jako canonical výše. -->
+<meta property="og:url" content="https://example.com/">
+<!-- TODO: náhledový obrázek 1200×630 px; bez něj se karta zobrazí jen jako text.
+<meta property="og:image" content="https://example.com/assets/img/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Kryštof Moravec — sítě, bezpečnost, AI">
+-->
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Kryštof Moravec — sítě, bezpečnost, AI">
+<meta name="twitter:description" content="Student sítí a kyberbezpečnosti z Ostravy, od září na VUT FEKT v Brně. Cisco, firewally FortiGate, optika a praktické využití AI.">
+
+<!-- favicon: hranatá závorka + tečka, stejný motiv jako značka KM. v hlavičce -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2305050a'/%3E%3Cpath%20d='M14%206.5H9.5v19H14'%20fill='none'%20stroke='%23a78bfa'%20stroke-width='2.6'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3Ccircle%20cx='21.5'%20cy='16'%20r='2.8'%20fill='%23e879f9'/%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- blokující <link>, aby se nic nevykreslilo dřív než styly -->
+<link rel="stylesheet" href="assets/css/style.css">
+<script defer src="assets/js/app.js"></script>
+
+<noscript><style>
+  #loader{display:none}
+  body.locked{overflow:auto}
+  .rv{opacity:1;transform:none}
+  .path{stroke-dashoffset:0}
+  .node,.hoplbl,.hopms{opacity:.9}
+</style></noscript>
+</head>
+<body class="locked">
+
+<div id="loader" aria-hidden="true">
+  <div class="lbl" data-cs="Měření trasy" data-en="Acquiring trace">Měření trasy</div>
+  <div class="num" id="pct">0%</div>
+  <div class="bar"><i id="barfill"></i></div>
+</div>
+
+<div class="glow a"></div>
+<div class="glow b"></div>
+
+<div class="wrap">
+<header>
+  <div class="mark">KM<b>.</b></div>
+  <div class="lang" role="group" aria-label="Volba jazyka" data-cs-aria="Volba jazyka" data-en-aria="Language selection">
+    <button type="button" data-lang="cs" aria-pressed="true">CS</button>
+    <button type="button" data-lang="en" aria-pressed="false">EN</button>
+  </div>
+</header>
+
+<main>
+<section id="hero" aria-labelledby="hero-title">
+  <div class="status">
+    <i></i><span data-cs="Otevřen pracovním nabídkám" data-en="Open to work">Otevřen pracovním nabídkám</span>
+  </div>
+
+  <h1 id="hero-title" data-cs="Stavím sítě a pak <em>měřím</em>, jestli fakt fungují." data-en="I build networks, then <em>measure</em> whether they actually work.">Stavím sítě a pak <em>měřím</em>, jestli fakt fungují.</h1>
+
+  <p class="lede" data-cs="Kryštof Moravec — student telekomunikačních a informačních systémů na VUT FEKT. Cisco, firewally a optika: rukama, ne jenom v simulátoru." data-en="Kryštof Moravec — Telecommunications and Information Systems student at Brno University of Technology. Cisco, firewalls and fiber: hands-on, not only in a simulator.">Kryštof Moravec — student telekomunikačních a informačních systémů na VUT FEKT. Cisco, firewally a optika: rukama, ne jenom v simulátoru.</p>
+
+  <figure class="hops" id="hops">
+    <svg viewBox="0 0 1200 130" role="img" aria-labelledby="hops-cap">
+      <line class="rail" x1="24" y1="58" x2="1176" y2="58"/>
+      <path class="path" d="M24 58 H1176"/>
+
+      <circle class="node" cx="24"   cy="58" r="5"   style="animation-delay:.15s"/>
+      <circle class="node" cx="216"  cy="58" r="4.5" style="animation-delay:.5s"/>
+      <circle class="node" cx="408"  cy="58" r="4.5" style="animation-delay:.85s"/>
+      <circle class="node" cx="600"  cy="58" r="4.5" style="animation-delay:1.2s"/>
+      <circle class="node" cx="792"  cy="58" r="4.5" style="animation-delay:1.55s"/>
+      <circle class="node" cx="984"  cy="58" r="4.5" style="animation-delay:1.9s"/>
+      <circle class="node end" cx="1176" cy="58" r="6.5" style="animation-delay:2.25s"/>
+
+      <text class="hoplbl" x="24"   y="34" text-anchor="middle" style="animation-delay:.2s">HOST</text>
+      <text class="hoplbl" x="216"  y="34" text-anchor="middle" style="animation-delay:.55s">02</text>
+      <text class="hoplbl" x="408"  y="34" text-anchor="middle" style="animation-delay:.9s">03</text>
+      <text class="hoplbl" x="600"  y="34" text-anchor="middle" style="animation-delay:1.25s">04</text>
+      <text class="hoplbl" x="792"  y="34" text-anchor="middle" style="animation-delay:1.6s">05</text>
+      <text class="hoplbl" x="984"  y="34" text-anchor="middle" style="animation-delay:1.95s">06</text>
+      <text class="hoplbl" x="1176" y="34" text-anchor="middle" style="animation-delay:2.3s">DEST</text>
+
+      <text class="hopms" x="216"  y="86" text-anchor="middle" style="animation-delay:.6s">1 ms</text>
+      <text class="hopms" x="408"  y="86" text-anchor="middle" style="animation-delay:.95s">4 ms</text>
+      <text class="hopms" x="600"  y="86" text-anchor="middle" style="animation-delay:1.3s">9 ms</text>
+      <text class="hopms" x="792"  y="86" text-anchor="middle" style="animation-delay:1.65s">11 ms</text>
+      <text class="hopms" x="984"  y="86" text-anchor="middle" style="animation-delay:2s">18 ms</text>
+      <text class="hopms" x="1176" y="86" text-anchor="middle" style="animation-delay:2.35s">21 ms</text>
+    </svg>
+    <figcaption id="hops-cap" data-cs="Traceroute — cesta paketu sítí, hop po hopu" data-en="Traceroute — a packet's path across the network, hop by hop">Traceroute — cesta paketu sítí, hop po hopu</figcaption>
+  </figure>
+</section>
+
+<section class="about rv" aria-labelledby="s-about">
+  <h2 class="eyebrow" id="s-about"><span aria-hidden="true">01</span><span data-cs="O mně" data-en="About">O mně</span></h2>
+  <p data-cs="Baví mě věci, u kterých je vidět, jestli fungují, nebo ne." data-en="I like the kind of work where you can tell whether it works or not.">Baví mě věci, u kterých je vidět, jestli fungují, nebo ne.</p>
+  <p data-cs="Na střední škole teleinformatiky jsem prošel celou cestu od zapojení a nakonfigurování Cisco routeru přes firewall a VPN až po svaření optického vlákna a jeho proměření. Od září pokračuju na VUT FEKT. Vedle sítí mě zajímá praktické využití AI a čas od času něco postavím na webu — třeba tuhle stránku." data-en="At secondary school in Ostrava I went the whole way: cabling and configuring Cisco routers, firewall rules and VPN tunnels, fusion splicing optical fiber and measuring it. From September I continue at Brno University of Technology. Beyond networks I'm interested in applied AI, and I build the occasional web project — this page among them.">Na střední škole teleinformatiky jsem prošel celou cestu od zapojení a nakonfigurování Cisco routeru přes firewall a VPN až po svaření optického vlákna a jeho proměření. Od září pokračuju na VUT FEKT. Vedle sítí mě zajímá praktické využití AI a čas od času něco postavím na webu — třeba tuhle stránku.</p>
+</section>
+
+<section class="rv" aria-labelledby="s-work">
+  <h2 class="eyebrow" id="s-work"><span aria-hidden="true">02</span><span data-cs="Čemu se věnuju" data-en="What I work on">Čemu se věnuju</span></h2>
+  <div class="rows">
+    <div class="row">
+      <h3>Networking</h3>
+      <p data-cs="Cisco routery a switche — kabeláž, konzole, konfigurace přes CLI. VLANy, routing, switching. Packet Tracer na návrh větších topologií." data-en="Cisco routers and switches — cabling, console, CLI configuration. VLANs, routing, switching. Packet Tracer for designing larger topologies.">Cisco routery a switche — kabeláž, konzole, konfigurace přes CLI. VLANy, routing, switching. Packet Tracer na návrh větších topologií.</p>
+    </div>
+    <div class="row">
+      <h3>Cybersecurity</h3>
+      <p data-cs="FortiGate firewally, pravidla a politiky, VPN tunely. Práce s EDR platformou." data-en="FortiGate firewalls, rules and policies, VPN tunnels. Hands-on with an EDR platform.">FortiGate firewally, pravidla a politiky, VPN tunely. Práce s EDR platformou.</p>
+    </div>
+    <div class="row">
+      <h3>AI</h3>
+      <p data-cs="Python a práce s API velkých modelů. Stavím si vlastní nástroje hlavně proto, abych zjistil, kde AI selhává — to se z článků nedozvíš." data-en="Python and working with large-model APIs. I build my own tools mostly to find out where AI breaks — you don't learn that from articles.">Python a práce s API velkých modelů. Stavím si vlastní nástroje hlavně proto, abych zjistil, kde AI selhává — to se z článků nedozvíš.</p>
+    </div>
+    <div class="row">
+      <h3>Web</h3>
+      <p data-cs="HTML, CSS, PHP a C#. Nejmenší z mých témat, ale drží mě u vývoje. Tahle stránka je jeden z výstupů." data-en="HTML, CSS, PHP and C#. The smallest of my areas, but it keeps me close to development. This page is one of the outputs.">HTML, CSS, PHP a C#. Nejmenší z mých témat, ale drží mě u vývoje. Tahle stránka je jeden z výstupů.</p>
+    </div>
+  </div>
+</section>
+
+<section class="rv" aria-labelledby="s-handson">
+  <h2 class="eyebrow" id="s-handson"><span aria-hidden="true">03</span><span data-cs="Sáhl jsem si na" data-en="Hands-on with">Sáhl jsem si na</span></h2>
+  <ul class="spec">
+    <li data-cs="Cisco IOS · konfigurace přes konzoli" data-en="Cisco IOS · console configuration">Cisco IOS · konfigurace přes konzoli</li>
+    <li data-cs="VLAN · routing · switching" data-en="VLAN · routing · switching">VLAN · routing · switching</li>
+    <li data-cs="FortiGate · pravidla a politiky" data-en="FortiGate · rules and policies">FortiGate · pravidla a politiky</li>
+    <li data-cs="VPN tunely" data-en="VPN tunnels">VPN tunely</li>
+    <li data-cs="EDR platforma" data-en="EDR platform">EDR platforma</li>
+    <li data-cs="Svařování optického vlákna" data-en="Fusion splicing of optical fiber">Svařování optického vlákna</li>
+    <li data-cs="Měření · přímá metoda a OTDR" data-en="Measurement · direct method and OTDR">Měření · přímá metoda a OTDR</li>
+    <li data-cs="Konektorování RJ45 a koaxu" data-en="RJ45 and coax termination">Konektorování RJ45 a koaxu</li>
+  </ul>
+  <p class="note" data-cs="Většina z toho vznikla ve školní laboratoři. Není to produkční praxe — ale je to práce s reálným hardwarem, ne klikání v simulátoru." data-en="Most of this comes from the school lab. It isn't production experience — but it is real hardware, not clicking around a simulator.">Většina z toho vznikla ve školní laboratoři. Není to produkční praxe — ale je to práce s reálným hardwarem, ne klikání v simulátoru.</p>
+</section>
+
+<section class="rv" aria-labelledby="s-edu">
+  <h2 class="eyebrow" id="s-edu"><span aria-hidden="true">04</span><span data-cs="Vzdělání a certifikace" data-en="Education and certifications">Vzdělání a certifikace</span></h2>
+  <div class="tl">
+    <div class="item">
+      <div class="yr">2026 —</div>
+      <div class="body">
+        <strong data-cs="VUT FEKT, Brno" data-en="Brno University of Technology, FEEC">VUT FEKT, Brno</strong>
+        <span data-cs="Telekomunikační a informační systémy" data-en="Telecommunications and Information Systems">Telekomunikační a informační systémy</span>
+      </div>
+    </div>
+    <div class="item">
+      <div class="yr">2022 — 2026</div>
+      <div class="body">
+        <strong data-cs="Střední škola teleinformatiky, Ostrava" data-en="Střední škola teleinformatiky, Ostrava">Střední škola teleinformatiky, Ostrava</strong>
+        <span data-cs="Teleinformatika · maturitní zkouška" data-en="Teleinformatics · Czech school-leaving exam">Teleinformatika · maturitní zkouška</span>
+      </div>
+    </div>
+    <div class="item">
+      <div class="yr">CERT</div>
+      <div class="body">
+        <strong>CCNA: Introduction to Networks</strong>
+        <span>Cisco Networking Academy</span>
+      </div>
+    </div>
+    <div class="item">
+      <div class="yr">CERT</div>
+      <div class="body">
+        <strong>B2 First for Schools · 176</strong>
+        <span>Cambridge English</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contact" class="rv" aria-labelledby="s-contact">
+  <h2 class="eyebrow" id="s-contact"><span aria-hidden="true">05</span><span data-cs="Kontakt" data-en="Contact">Kontakt</span></h2>
+  <a class="mailto" href="mailto:krysto.morav@gmail.com">krysto.morav@gmail.com</a>
+  <div class="links">
+    <a href="https://www.linkedin.com/in/kry%C5%A1tof-moravec-477779353/" target="_blank" rel="noopener">LinkedIn</a>
+    <span class="pending">GitHub — <span data-cs="doplním" data-en="to be added">doplním</span></span>
+    <span data-cs="Ostrava · Brno" data-en="Ostrava · Brno">Ostrava · Brno</span>
+  </div>
+</section>
+</main>
+
+<footer>
+  <span>Kryštof Moravec</span>
+  <span data-cs="Built with Claude · 2026" data-en="Built with Claude · 2026">Built with Claude · 2026</span>
+</footer>
+</div>
+
+</body>
+</html>
