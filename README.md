@@ -6,14 +6,33 @@ bez build procesu a bez závislostí — jen HTML, CSS a jeden soubor s JavaScri
 ## Struktura
 
 ```
-index.html            obsah stránky, meta tagy pro SEO a sdílení, favicon jako inline SVG
-assets/css/style.css  veškeré styly
+index.html            obsah stránky, meta tagy, JSON-LD, favicon jako inline SVG
+vercel.json           bezpečnostní hlavičky a cache pro fonty
+assets/css/style.css  veškeré styly včetně @font-face
 assets/js/app.js      přepínač jazyka, úvodní loader, animace při scrollování
+assets/fonts/         Space Grotesk a JetBrains Mono (woff2)
+assets/img/og.jpg     náhledový obrázek pro sdílení
 ```
 
 Texty obou jazykových verzí jsou přímo v `index.html` v atributech `data-cs` a `data-en`.
 Přepínač jazyka je jen prohodí — druhá stránka ani překladový soubor neexistuje.
 Když se tedy něco upravuje, je potřeba upravit **obě** varianty textu.
+
+## Fonty
+
+Space Grotesk a JetBrains Mono jsou uložené v `assets/fonts/`, ne načítané
+z Google Fonts. Důvody dva: nenačítá se nic z cizí domény (takže se ani
+neodesílá IP adresa návštěvníka třetí straně) a odpadá čekání na DNS a TLS
+handshake ještě před vykreslením prvního písmene.
+
+Jsou to **variabilní** fonty — jeden soubor pokrývá celý rozsah řezů, proto
+je v `@font-face` uvedený `font-weight` jako rozsah (`400 700`) a ne jedna
+hodnota. Proto také stačí čtyři soubory místo deseti.
+
+Rozdělení na `latin` a `latin-ext` přes `unicode-range` znamená, že soubor
+s diakritikou se stáhne jen tehdy, když ho stránka potřebuje.
+
+Oba fonty jsou pod SIL Open Font License 1.1.
 
 ## Spuštění lokálně
 
@@ -43,8 +62,8 @@ z GitHubu (repozitář `morykeu/personal_web`).
 - push do větve `main` → produkční nasazení
 - push do jiné větve nebo pull request → náhledové (preview) nasazení s vlastní URL
 
-Protože jde o čistě statický web, není potřeba `vercel.json` ani nastavovat
-build. Ve Vercelu se projekt zakládá jako **Other** / bez frameworku:
+Build se nespouští, jde o statické soubory. Ve Vercelu je projekt založený
+jako **Other** / bez frameworku:
 
 | Nastavení        | Hodnota        |
 | ---------------- | -------------- |
@@ -52,6 +71,21 @@ build. Ve Vercelu se projekt zakládá jako **Other** / bez frameworku:
 | Build Command    | *(prázdné)*    |
 | Output Directory | `.`            |
 | Install Command  | *(prázdné)*    |
+
+### Hlavičky
+
+`vercel.json` nastavuje bezpečnostní hlavičky (`Content-Security-Policy`,
+`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
+`Permissions-Policy`) a roční cache pro fonty.
+
+CSP má u `style-src` hodnotu `'unsafe-inline'`. Není to nedbalost — stránka
+má inline `style="animation-delay:…"` přímo na prvcích SVG a `<noscript>`
+blok se styly. Bez toho by se traceroute animace nespustila. Kdyby se ty
+inline styly někdy přesunuly do tříd, dá se `'unsafe-inline'` odebrat.
+
+Při úpravě hlaviček je dobré je nejdřív ověřit lokálně, protože špatná CSP
+umí stránku rozbít až na produkci — chyby se objeví v konzoli prohlížeče
+jako „Refused to load…".
 
 ### Při změně domény
 

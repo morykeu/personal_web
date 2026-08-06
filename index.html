@@ -38,13 +38,54 @@
 <!-- favicon: hranatá závorka + tečka, stejný motiv jako značka KM. v hlavičce -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%2305050a'/%3E%3Cpath%20d='M14%206.5H9.5v19H14'%20fill='none'%20stroke='%23a78bfa'%20stroke-width='2.6'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3Ccircle%20cx='21.5'%20cy='16'%20r='2.8'%20fill='%23e879f9'/%3E%3C/svg%3E">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Fonty jsou hostované lokálně (assets/fonts), žádný požadavek na cizí doménu.
+     Preload jen na dva latinské soubory, které padnou na první vykreslení —
+     latin-ext si prohlížeč dotáhne sám, až narazí na diakritiku. -->
+<link rel="preload" href="assets/fonts/spacegrotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrainsmono-latin.woff2" as="font" type="font/woff2" crossorigin>
 
 <!-- blokující <link>, aby se nic nevykreslilo dřív než styly -->
 <link rel="stylesheet" href="assets/css/style.css">
 <script defer src="assets/js/app.js"></script>
+
+<!-- Strukturovaná data pro vyhledávače: spojují jméno s profily a školou. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "Kryštof Moravec",
+  "url": "https://krystofmoravec.vercel.app/",
+  "image": "https://krystofmoravec.vercel.app/assets/img/og.jpg",
+  "email": "mailto:krysto.morav@gmail.com",
+  "description": "Networking and cybersecurity student from Ostrava, now at Brno University of Technology.",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Ostrava",
+    "addressCountry": "CZ"
+  },
+  "alumniOf": {
+    "@type": "EducationalOrganization",
+    "name": "Střední škola teleinformatiky, Ostrava"
+  },
+  "affiliation": {
+    "@type": "CollegeOrUniversity",
+    "name": "Vysoké učení technické v Brně, Fakulta elektrotechniky a komunikačních technologií",
+    "url": "https://www.fekt.vut.cz/"
+  },
+  "knowsAbout": [
+    "Computer networking",
+    "Cisco IOS",
+    "Network security",
+    "FortiGate firewalls",
+    "Fiber optics",
+    "Applied artificial intelligence"
+  ],
+  "sameAs": [
+    "https://www.linkedin.com/in/kry%C5%A1tof-moravec-477779353/",
+    "https://github.com/morykeu"
+  ]
+}
+</script>
 
 <noscript><style>
   #loader{display:none}
@@ -198,7 +239,7 @@
   <a class="mailto" href="mailto:krysto.morav@gmail.com">krysto.morav@gmail.com</a>
   <div class="links">
     <a href="https://www.linkedin.com/in/kry%C5%A1tof-moravec-477779353/" target="_blank" rel="noopener">LinkedIn</a>
-    <span class="pending">GitHub — <span data-cs="doplním" data-en="to be added">doplním</span></span>
+    <a href="https://github.com/morykeu" target="_blank" rel="noopener">GitHub</a>
     <span data-cs="Ostrava · Brno" data-en="Ostrava · Brno">Ostrava · Brno</span>
   </div>
 </section>
