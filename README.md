@@ -60,11 +60,20 @@ natvrdo. Při přechodu na vlastní doménu je potřeba přepsat obě — a vžd
 jako **absolutní** adresu včetně `https://` a koncového lomítka. Bez schématu
 si prohlížeč i vyhledávače hodnotu vyloží jako relativní cestu.
 
-### Co ještě chybí
+### Náhledový obrázek
 
-Náhledový obrázek pro sdílení (`og:image`, 1200×630 px) — v `<head>` je na něj
-připravený zakomentovaný blok. Dokud tam není, zobrazí se odkaz na sociálních
-sítích a v Discordu jen jako text, bez obrázku.
+`assets/img/og.jpg` (1200×630 px) je to, co se zobrazí při sdílení odkazu na
+LinkedInu, Facebooku, X nebo v Discordu. Je odkazovaný absolutní adresou
+z `og:image` a `twitter:image`.
+
+Po jeho výměně je potřeba dát platformám vědět, že mají načíst novou verzi —
+mají odkazy dlouho v cache:
+
+- LinkedIn: <https://www.linkedin.com/post-inspector/>
+- Facebook: <https://developers.facebook.com/tools/debug/>
+
+Jednodušší alternativa je nahrát obrázek pod novým názvem a přepsat cestu
+v `<head>` — nová adresa cache obejde.
 
 ## Přístupnost
 
