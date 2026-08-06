@@ -37,7 +37,8 @@ stačí obnovit stránku (u CSS a JS případně tvrdý reload, `Ctrl+Shift+R`).
 
 ## Nasazení
 
-Web běží na Vercelu, nasazuje se automaticky z GitHubu.
+Web běží na <https://krystofmoravec.vercel.app/> a nasazuje se automaticky
+z GitHubu (repozitář `morykeu/personal_web`).
 
 - push do větve `main` → produkční nasazení
 - push do jiné větve nebo pull request → náhledové (preview) nasazení s vlastní URL
@@ -52,15 +53,18 @@ build. Ve Vercelu se projekt zakládá jako **Other** / bez frameworku:
 | Output Directory | `.`            |
 | Install Command  | *(prázdné)*    |
 
-### Po prvním nasazení
+### Při změně domény
 
-V `index.html` je potřeba nahradit zástupnou adresu `https://example.com/`
-skutečnou doménou — na dvou místech, `<link rel="canonical">` a `og:url`.
-Obě jsou označené komentářem `TODO`.
+`<link rel="canonical">` a `og:url` v `<head>` obsahují produkční adresu
+natvrdo. Při přechodu na vlastní doménu je potřeba přepsat obě — a vždy
+jako **absolutní** adresu včetně `https://` a koncového lomítka. Bez schématu
+si prohlížeč i vyhledávače hodnotu vyloží jako relativní cestu.
 
-Zároveň se hodí doplnit náhledový obrázek pro sdílení (`og:image`, 1200×630 px);
-v `<head>` je na něj připravený zakomentovaný blok. Bez něj se odkaz na
-sociálních sítích zobrazí jen jako text.
+### Co ještě chybí
+
+Náhledový obrázek pro sdílení (`og:image`, 1200×630 px) — v `<head>` je na něj
+připravený zakomentovaný blok. Dokud tam není, zobrazí se odkaz na sociálních
+sítích a v Discordu jen jako text, bez obrázku.
 
 ## Přístupnost
 

@@ -1,0 +1,19 @@
+# Sjednocení konců řádků.
+# Windows ukládá konec řádku jako CRLF, Linux (a Vercel) jako LF.
+# Tohle říká gitu: v repozitáři drž všechno v LF, ať je jedno,
+# kdo a na čem soubor uložil.
+* text=auto eol=lf
+
+# Binární soubory se nesmí převádět, poškodilo by je to.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.avif binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+*.otf  binary
+*.pdf  binary
