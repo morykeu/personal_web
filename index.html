@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="cs">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>Kryštof Moravec — sítě, bezpečnost, AI</title>
+<title>Kryštof Moravec — networks, security, AI</title>
 <meta name="description" content="Kryštof Moravec — networking and cybersecurity student from Ostrava, now at Brno University of Technology. Cisco, FortiGate, fiber optics and applied AI.">
 <meta name="author" content="Kryštof Moravec">
 <meta name="theme-color" content="#05050a">
@@ -16,8 +16,8 @@
 <meta property="og:title" content="Kryštof Moravec — networks, security, AI">
 <meta property="og:description" content="Networking and cybersecurity student from Ostrava, now at Brno University of Technology. Cisco, FortiGate, fiber optics and applied AI.">
 <meta property="og:type" content="website">
-<!-- Sdílecí metadata jsou anglicky, proto en_US; samotná stránka se pořád
-     načítá v češtině (<html lang="cs">), ta je vedená jako alternativa. -->
+<!-- Stránka i sdílecí metadata jsou anglicky (<html lang="en">); čeština je
+     volitelná přes přepínač v hlavičce, proto zůstává jako alternativa. -->
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="cs_CZ">
 <meta property="og:site_name" content="Kryštof Moravec">
@@ -81,7 +81,7 @@
     "Applied artificial intelligence"
   ],
   "sameAs": [
-    "https://www.linkedin.com/in/kry%C5%A1tof-moravec-477779353/",
+    "https://www.linkedin.com/in/krystofmoravec/",
     "https://github.com/morykeu"
   ]
 }
@@ -98,7 +98,7 @@
 <body class="locked">
 
 <div id="loader" aria-hidden="true">
-  <div class="lbl" data-cs="Měření trasy" data-en="Acquiring trace">Měření trasy</div>
+  <div class="lbl" data-cs="Měření trasy" data-en="Acquiring trace">Acquiring trace</div>
   <div class="num" id="pct">0%</div>
   <div class="bar"><i id="barfill"></i></div>
 </div>
@@ -109,21 +109,21 @@
 <div class="wrap">
 <header>
   <div class="mark">KM<b>.</b></div>
-  <div class="lang" role="group" aria-label="Volba jazyka" data-cs-aria="Volba jazyka" data-en-aria="Language selection">
-    <button type="button" data-lang="cs" aria-pressed="true">CS</button>
-    <button type="button" data-lang="en" aria-pressed="false">EN</button>
+  <div class="lang" role="group" aria-label="Language selection" data-cs-aria="Volba jazyka" data-en-aria="Language selection">
+    <button type="button" data-lang="cs" aria-pressed="false">CS</button>
+    <button type="button" data-lang="en" aria-pressed="true">EN</button>
   </div>
 </header>
 
 <main>
 <section id="hero" aria-labelledby="hero-title">
   <div class="status">
-    <i></i><span data-cs="Otevřen pracovním nabídkám" data-en="Open to work">Otevřen pracovním nabídkám</span>
+    <i></i><span data-cs="Otevřen pracovním nabídkám" data-en="Open to work">Open to work</span>
   </div>
 
-  <h1 id="hero-title" data-cs="Stavím sítě a pak <em>měřím</em>, jestli fakt fungují." data-en="I build networks, then <em>measure</em> whether they actually work.">Stavím sítě a pak <em>měřím</em>, jestli fakt fungují.</h1>
+  <h1 id="hero-title" data-cs="Stavím sítě a pak <em>měřím</em>, jestli fakt fungují." data-en="I build networks, then <em>measure</em> whether they actually work.">I build networks, then <em>measure</em> whether they actually work.</h1>
 
-  <p class="lede" data-cs="Kryštof Moravec — student telekomunikačních a informačních systémů na VUT FEKT. Cisco, firewally a optika — rukama, ne jenom v simulátoru." data-en="Kryštof Moravec — Telecommunications and Information Systems student at Brno University of Technology. Cisco, firewalls and fiber — hands-on, not only in a simulator.">Kryštof Moravec — student telekomunikačních a informačních systémů na VUT FEKT. Cisco, firewally a optika — rukama, ne jenom v simulátoru.</p>
+  <p class="lede" data-cs="Kryštof Moravec — student telekomunikačních a informačních systémů na VUT FEKT. Cisco, firewally a optika — rukama, ne jenom v simulátoru." data-en="Kryštof Moravec — Telecommunications and Information Systems student at Brno University of Technology. Cisco, firewalls and fiber — hands-on, not only in a simulator.">Kryštof Moravec — Telecommunications and Information Systems student at Brno University of Technology. Cisco, firewalls and fiber — hands-on, not only in a simulator.</p>
 
   <figure class="hops" id="hops">
     <svg viewBox="0 0 1200 130" role="img" aria-labelledby="hops-cap">
@@ -153,79 +153,79 @@
       <text class="hopms" x="984"  y="86" text-anchor="middle" style="animation-delay:2s">18 ms</text>
       <text class="hopms" x="1176" y="86" text-anchor="middle" style="animation-delay:2.35s">21 ms</text>
     </svg>
-    <figcaption id="hops-cap" data-cs="Traceroute — cesta paketu sítí, hop po hopu" data-en="Traceroute — a packet's path across the network, hop by hop">Traceroute — cesta paketu sítí, hop po hopu</figcaption>
+    <figcaption id="hops-cap" data-cs="Traceroute — cesta paketu sítí, hop po hopu" data-en="Traceroute — a packet's path across the network, hop by hop">Traceroute — a packet's path across the network, hop by hop</figcaption>
   </figure>
 </section>
 
 <section class="about rv" aria-labelledby="s-about">
-  <h2 class="eyebrow" id="s-about"><span aria-hidden="true">01</span><span data-cs="O mně" data-en="About">O mně</span></h2>
-  <p data-cs="Baví mě věci, u kterých je vidět, jestli fungují, nebo ne." data-en="I like the kind of work where you can tell whether it works or not.">Baví mě věci, u kterých je vidět, jestli fungují, nebo ne.</p>
-  <p data-cs="Na střední škole teleinformatiky jsem prošel celou cestu od zapojení a nakonfigurování Cisco routeru přes firewall a VPN až po svaření optického vlákna a jeho proměření. Od září pokračuju na VUT FEKT. Vedle sítí mě zajímá praktické využití AI a čas od času něco postavím na webu — třeba tuhle stránku." data-en="At secondary school in Ostrava I went the whole way: cabling and configuring Cisco routers, firewall rules and VPN tunnels, fusion splicing optical fiber and measuring it. From September I continue at Brno University of Technology. Beyond networks I'm interested in applied AI, and I build the occasional web project — this page among them.">Na střední škole teleinformatiky jsem prošel celou cestu od zapojení a nakonfigurování Cisco routeru přes firewall a VPN až po svaření optického vlákna a jeho proměření. Od září pokračuju na VUT FEKT. Vedle sítí mě zajímá praktické využití AI a čas od času něco postavím na webu — třeba tuhle stránku.</p>
+  <h2 class="eyebrow" id="s-about"><span aria-hidden="true">01</span><span data-cs="O mně" data-en="About">About</span></h2>
+  <p data-cs="Baví mě věci, u kterých je vidět, jestli fungují, nebo ne." data-en="I like the kind of work where you can tell whether it works or not.">I like the kind of work where you can tell whether it works or not.</p>
+  <p data-cs="Na střední škole teleinformatiky jsem prošel celou cestu od zapojení a nakonfigurování Cisco routeru přes firewall a VPN až po svaření optického vlákna a jeho proměření. Od září pokračuju na VUT FEKT. Vedle sítí mě zajímá praktické využití AI a čas od času něco postavím na webu — třeba tuhle stránku." data-en="At secondary school in Ostrava I went the whole way: cabling and configuring Cisco routers, firewall rules and VPN tunnels, fusion splicing optical fiber and measuring it. From September I continue at Brno University of Technology. Beyond networks I'm interested in applied AI, and I build the occasional web project — this page among them.">At secondary school in Ostrava I went the whole way: cabling and configuring Cisco routers, firewall rules and VPN tunnels, fusion splicing optical fiber and measuring it. From September I continue at Brno University of Technology. Beyond networks I'm interested in applied AI, and I build the occasional web project — this page among them.</p>
 </section>
 
 <section class="rv" aria-labelledby="s-work">
-  <h2 class="eyebrow" id="s-work"><span aria-hidden="true">02</span><span data-cs="Čemu se věnuju" data-en="What I work on">Čemu se věnuju</span></h2>
+  <h2 class="eyebrow" id="s-work"><span aria-hidden="true">02</span><span data-cs="Čemu se věnuju" data-en="What I work on">What I work on</span></h2>
   <div class="rows">
     <div class="row">
       <h3>Networking</h3>
-      <p data-cs="Cisco routery a switche — kabeláž, konzole, konfigurace přes CLI. VLANy, routing, switching. Packet Tracer na návrh větších topologií." data-en="Cisco routers and switches — cabling, console, CLI configuration. VLANs, routing, switching. Packet Tracer for designing larger topologies.">Cisco routery a switche — kabeláž, konzole, konfigurace přes CLI. VLANy, routing, switching. Packet Tracer na návrh větších topologií.</p>
+      <p data-cs="Cisco routery a switche — kabeláž, konzole, konfigurace přes CLI. VLANy, routing, switching. Packet Tracer na návrh větších topologií." data-en="Cisco routers and switches — cabling, console, CLI configuration. VLANs, routing, switching. Packet Tracer for designing larger topologies.">Cisco routers and switches — cabling, console, CLI configuration. VLANs, routing, switching. Packet Tracer for designing larger topologies.</p>
     </div>
     <div class="row">
       <h3>Cybersecurity</h3>
-      <p data-cs="FortiGate firewally, pravidla a politiky, VPN tunely. Práce s EDR platformou." data-en="FortiGate firewalls, rules and policies, VPN tunnels. Hands-on with an EDR platform.">FortiGate firewally, pravidla a politiky, VPN tunely. Práce s EDR platformou.</p>
+      <p data-cs="FortiGate firewally, pravidla a politiky, VPN tunely. Práce s EDR platformou." data-en="FortiGate firewalls, rules and policies, VPN tunnels. Hands-on with an EDR platform.">FortiGate firewalls, rules and policies, VPN tunnels. Hands-on with an EDR platform.</p>
     </div>
     <div class="row">
       <h3>AI</h3>
-      <p data-cs="Python a práce s API velkých modelů. Stavím si vlastní nástroje hlavně proto, abych zjistil, kde AI selhává — to se z článků nedozvíš." data-en="Python and working with large-model APIs. I build my own tools mostly to find out where AI breaks — you don't learn that from articles.">Python a práce s API velkých modelů. Stavím si vlastní nástroje hlavně proto, abych zjistil, kde AI selhává — to se z článků nedozvíš.</p>
+      <p data-cs="Python a práce s API velkých modelů. Stavím si vlastní nástroje hlavně proto, abych zjistil, kde AI selhává — to se z článků nedozvíš." data-en="Python and working with large-model APIs. I build my own tools mostly to find out where AI breaks — you don't learn that from articles.">Python and working with large-model APIs. I build my own tools mostly to find out where AI breaks — you don't learn that from articles.</p>
     </div>
     <div class="row">
       <h3>Web</h3>
-      <p data-cs="HTML, CSS, PHP a C#. Nejmenší z mých témat, ale drží mě u vývoje. Tahle stránka je jeden z výstupů." data-en="HTML, CSS, PHP and C#. The smallest of my areas, but it keeps me close to development. This page is one of the outputs.">HTML, CSS, PHP a C#. Nejmenší z mých témat, ale drží mě u vývoje. Tahle stránka je jeden z výstupů.</p>
+      <p data-cs="HTML, CSS, PHP a C#. Nejmenší z mých témat, ale drží mě u vývoje. Tahle stránka je jeden z výstupů." data-en="HTML, CSS, PHP and C#. The smallest of my areas, but it keeps me close to development. This page is one of the outputs.">HTML, CSS, PHP and C#. The smallest of my areas, but it keeps me close to development. This page is one of the outputs.</p>
     </div>
   </div>
 </section>
 
 <section class="rv" aria-labelledby="s-handson">
-  <h2 class="eyebrow" id="s-handson"><span aria-hidden="true">03</span><span data-cs="Sáhl jsem si na" data-en="Hands-on with">Sáhl jsem si na</span></h2>
+  <h2 class="eyebrow" id="s-handson"><span aria-hidden="true">03</span><span data-cs="Sáhl jsem si na" data-en="Hands-on with">Hands-on with</span></h2>
   <ul class="spec">
-    <li data-cs="Cisco IOS · konfigurace přes konzoli" data-en="Cisco IOS · console configuration">Cisco IOS · konfigurace přes konzoli</li>
+    <li data-cs="Cisco IOS · konfigurace přes konzoli" data-en="Cisco IOS · console configuration">Cisco IOS · console configuration</li>
     <li data-cs="VLAN · routing · switching" data-en="VLAN · routing · switching">VLAN · routing · switching</li>
-    <li data-cs="FortiGate · pravidla a politiky" data-en="FortiGate · rules and policies">FortiGate · pravidla a politiky</li>
-    <li data-cs="VPN tunely" data-en="VPN tunnels">VPN tunely</li>
-    <li data-cs="EDR platforma" data-en="EDR platform">EDR platforma</li>
-    <li data-cs="Svařování optického vlákna" data-en="Fusion splicing of optical fiber">Svařování optického vlákna</li>
-    <li data-cs="Měření · přímá metoda a OTDR" data-en="Measurement · direct method and OTDR">Měření · přímá metoda a OTDR</li>
-    <li data-cs="Konektorování RJ45 a koaxu" data-en="RJ45 and coax termination">Konektorování RJ45 a koaxu</li>
+    <li data-cs="FortiGate · pravidla a politiky" data-en="FortiGate · rules and policies">FortiGate · rules and policies</li>
+    <li data-cs="VPN tunely" data-en="VPN tunnels">VPN tunnels</li>
+    <li data-cs="EDR platforma" data-en="EDR platform">EDR platform</li>
+    <li data-cs="Svařování optického vlákna" data-en="Fusion splicing of optical fiber">Fusion splicing of optical fiber</li>
+    <li data-cs="Měření · přímá metoda a OTDR" data-en="Measurement · direct method and OTDR">Measurement · direct method and OTDR</li>
+    <li data-cs="Konektorování RJ45 a koaxu" data-en="RJ45 and coax termination">RJ45 and coax termination</li>
   </ul>
-  <p class="note" data-cs="Většina z toho vznikla ve školní laboratoři. Není to produkční praxe — ale je to práce s reálným hardwarem, ne klikání v simulátoru." data-en="Most of this comes from the school lab. It isn't production experience — but it is real hardware, not clicking around a simulator.">Většina z toho vznikla ve školní laboratoři. Není to produkční praxe — ale je to práce s reálným hardwarem, ne klikání v simulátoru.</p>
+  <p class="note" data-cs="Většina z toho vznikla ve školní laboratoři. Není to produkční praxe — ale je to práce s reálným hardwarem, ne klikání v simulátoru." data-en="Most of this comes from the school lab. It isn't production experience — but it is real hardware, not clicking around a simulator.">Most of this comes from the school lab. It isn't production experience — but it is real hardware, not clicking around a simulator.</p>
 </section>
 
 <section class="rv" aria-labelledby="s-edu">
-  <h2 class="eyebrow" id="s-edu"><span aria-hidden="true">04</span><span data-cs="Vzdělání a certifikace" data-en="Education and certifications">Vzdělání a certifikace</span></h2>
+  <h2 class="eyebrow" id="s-edu"><span aria-hidden="true">04</span><span data-cs="Vzdělání a kvalifikace" data-en="Education and credentials">Education and credentials</span></h2>
   <div class="tl">
     <div class="item">
       <div class="yr">2026 —</div>
       <div class="body">
-        <strong data-cs="VUT FEKT, Brno" data-en="Brno University of Technology, FEEC">VUT FEKT, Brno</strong>
-        <span data-cs="Telekomunikační a informační systémy" data-en="Telecommunications and Information Systems">Telekomunikační a informační systémy</span>
+        <strong data-cs="VUT FEKT, Brno" data-en="Brno University of Technology, FEEC">Brno University of Technology, FEEC</strong>
+        <span data-cs="Telekomunikační a informační systémy" data-en="Telecommunications and Information Systems">Telecommunications and Information Systems</span>
       </div>
     </div>
     <div class="item">
       <div class="yr">2022 — 2026</div>
       <div class="body">
         <strong data-cs="Střední škola teleinformatiky, Ostrava" data-en="Střední škola teleinformatiky, Ostrava">Střední škola teleinformatiky, Ostrava</strong>
-        <span data-cs="Teleinformatika · maturitní zkouška" data-en="Teleinformatics · Czech school-leaving exam">Teleinformatika · maturitní zkouška</span>
+        <span data-cs="Teleinformatika · maturitní zkouška" data-en="Teleinformatics · Czech school-leaving exam">Teleinformatics · Czech school-leaving exam</span>
       </div>
     </div>
     <div class="item">
-      <div class="yr">CERT</div>
+      <div class="yr" data-cs="KURZ" data-en="COURSE">COURSE</div>
       <div class="body">
         <strong>CCNA: Introduction to Networks</strong>
         <span>Cisco Networking Academy</span>
       </div>
     </div>
     <div class="item">
-      <div class="yr">CERT</div>
+      <div class="yr" data-cs="CERT" data-en="CERT">CERT</div>
       <div class="body">
         <strong>B2 First for Schools · 176</strong>
         <span>Cambridge English</span>
@@ -235,10 +235,10 @@
 </section>
 
 <section id="contact" class="rv" aria-labelledby="s-contact">
-  <h2 class="eyebrow" id="s-contact"><span aria-hidden="true">05</span><span data-cs="Kontakt" data-en="Contact">Kontakt</span></h2>
+  <h2 class="eyebrow" id="s-contact"><span aria-hidden="true">05</span><span data-cs="Kontakt" data-en="Contact">Contact</span></h2>
   <a class="mailto" href="mailto:krysto.morav@gmail.com">krysto.morav@gmail.com</a>
   <div class="links">
-    <a href="https://www.linkedin.com/in/kry%C5%A1tof-moravec-477779353/" target="_blank" rel="noopener">LinkedIn</a>
+    <a href="https://www.linkedin.com/in/krystofmoravec/" target="_blank" rel="noopener">LinkedIn</a>
     <a href="https://github.com/morykeu" target="_blank" rel="noopener">GitHub</a>
     <span data-cs="Ostrava · Brno" data-en="Ostrava · Brno">Ostrava · Brno</span>
   </div>

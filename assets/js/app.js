@@ -15,12 +15,12 @@
     try { localStorage.setItem(STORE_KEY, lang); } catch(e){}
   }
 
-  /* saved choice wins; otherwise cs for Czech browsers, en for everyone else */
+  /* saved choice wins; otherwise English for everyone, regardless of the
+     browser's own language — Czech is only ever reached via the CS button */
   function initialLang(){
     var saved = stored();
     if (saved === "cs" || saved === "en") return saved;
-    var nav = (navigator.language || navigator.userLanguage || "").toLowerCase();
-    return (nav === "cs" || nav.indexOf("cs-") === 0) ? "cs" : "en";
+    return "en";
   }
 
   function setLang(lang, persist){
