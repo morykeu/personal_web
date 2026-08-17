@@ -222,6 +222,31 @@ h1 em{font-style:normal;color:var(--violet)}
 }
 .row p{margin:0;color:var(--muted);line-height:1.66;font-size:clamp(.95rem,1.2vw,1.06rem);max-width:58ch}
 
+/* ---------- projects ---------- */
+/* Built on .rows / .row above — grid, dividers and hover tint all carry over,
+   and the heading is a plain descriptive label exactly like in capabilities.
+
+   The description, stack line and repo link share a wrapper rather than being
+   further children of .row: .row is a two-column grid, so a third child would
+   land in the left column on a new row instead of under the text.
+
+   .repo prints its own destination, so it stays lower-case even though almost
+   every other mono label here is upper-cased — a URL path is case-sensitive
+   and transforming it would misrepresent the target. */
+/* both beat `.row p` (0-1-1) on font-size and margin, hence the two classes */
+.row .stack{
+  margin:14px 0 0;font-family:var(--mono);
+  font-size:clamp(.78rem,1vw,.86rem);letter-spacing:.08em;
+}
+.row .repo{
+  display:inline-block;margin-top:12px;
+  font-family:var(--mono);font-size:clamp(.78rem,1vw,.86rem);
+  letter-spacing:.02em;text-transform:none;color:var(--muted);
+  text-decoration:none;border-bottom:1px solid rgba(167,139,250,.3);
+  padding-bottom:2px;transition:.25s;
+}
+.row .repo:hover{color:var(--violet);border-color:var(--violet)}
+
 /* ---------- lab spec ---------- */
 .spec{list-style:none;padding:0;margin:0;display:grid;gap:0 clamp(24px,5vw,72px);
   grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))}
