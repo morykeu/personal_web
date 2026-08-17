@@ -54,6 +54,10 @@
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --disp:"Space Grotesk",system-ui,-apple-system,sans-serif;
   --pad:clamp(20px,5vw,88px);
+  /* Height of the fixed header: 22px padding, the 28px language switcher,
+     22px padding. The section nav is shorter than the switcher, so adding it
+     did not change this. Sections offset their anchor targets by it. */
+  --header-h:72px;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -96,8 +100,37 @@ header{
   padding:22px var(--pad);
   font-family:var(--mono);font-size:11px;letter-spacing:.26em;text-transform:uppercase;
 }
-header .mark{color:var(--violet)}
+header .mark{color:var(--violet);text-decoration:none}
 header .mark b{color:var(--magenta);font-weight:500}
+
+/* ---------- section nav ---------- */
+/* Plain anchors — html{scroll-behavior:smooth} above animates the jump, so no
+   script sits behind the links. Only the active highlight needs JavaScript,
+   and without it the links still navigate.
+
+   Letter-spacing is tighter than the .26em the header sets: at .26em the six
+   labels do not fit beside the monogram and the switcher until well past
+   1400px. */
+.secnav{display:flex;gap:clamp(12px,1.6vw,26px);letter-spacing:.12em}
+.secnav a{
+  position:relative;display:inline-flex;gap:6px;
+  color:var(--muted);text-decoration:none;
+  border-bottom:1px solid transparent;padding-bottom:3px;transition:.2s;
+}
+.secnav a:hover{color:var(--text)}
+.secnav a[aria-current="location"]{color:var(--violet);border-color:var(--violet)}
+
+/* Middle tier: numbers only. Plain display:none is safe here because each link
+   names itself with aria-label in the markup — nothing about the accessible
+   name depends on this span being rendered. */
+@media (max-width:1200px){
+  .secnav .lbl{display:none}
+}
+/* Narrow tier: gone. The page is short enough to scroll, and a hamburger
+   would be more chrome than the content behind it warrants. */
+@media (max-width:768px){
+  .secnav{display:none}
+}
 .lang{display:flex;gap:2px;border:1px solid rgba(167,139,250,.24);border-radius:2px;overflow:hidden}
 .lang button{
   background:none;border:0;cursor:pointer;padding:6px 11px;
@@ -107,7 +140,10 @@ header .mark b{color:var(--magenta);font-weight:500}
 .lang button[aria-pressed="true"]{background:rgba(167,139,250,.14);color:var(--violet)}
 .lang button:focus-visible{outline:2px solid var(--magenta);outline-offset:-2px}
 
-section{padding:clamp(90px,13vh,150px) var(--pad);max-width:1400px;margin:0 auto}
+/* scroll-margin-top, not padding: it moves only where an anchor jump lands,
+   leaving the layout alone, so the header never covers a section's top edge. */
+section{padding:clamp(90px,13vh,150px) var(--pad);max-width:1400px;margin:0 auto;
+  scroll-margin-top:var(--header-h)}
 .eyebrow{
   font-family:var(--mono);font-size:11px;letter-spacing:.32em;text-transform:uppercase;
   color:var(--muted);margin:0 0 34px;display:flex;align-items:center;gap:14px;

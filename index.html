@@ -108,7 +108,30 @@
 
 <div class="wrap">
 <header>
-  <div class="mark">KM<b>.</b></div>
+  <a class="mark" href="#hero" aria-label="Back to top" data-cs-aria="Zpět nahoru" data-en-aria="Back to top">KM<b>.</b></a>
+
+  <!-- Názvy sekcí jsou v souboru třikrát: v nadpisu sekce, ve viditelném
+       popisku navigace a v jejím aria-label. Je to vědomé rozhodnutí, ne
+       přehlédnutí — generovat navigaci z nadpisů JavaScriptem by ji bez JS
+       rozbilo a fallback bez skriptu držíme na celé stránce. Šest názvů
+       navíc je levnější než rozbitá navigace.
+
+       Vlastní aria-label má každý odkaz proto, že pod 1200 px se viditelný
+       popisek skrývá a číslo vedle něj je aria-hidden — jinak by jméno
+       odkazu záviselo na šířce okna.
+
+       Položka 03 má v navigaci záměrně kratší název než nadpis sekce:
+       "Sáhl jsem si na" dokončuje až seznam pod ním a jako samostatná
+       nálepka nedrží. -->
+  <nav class="secnav" aria-label="Sections" data-cs-aria="Sekce" data-en-aria="Sections">
+    <a href="#about" aria-label="About" data-cs-aria="O mně" data-en-aria="About"><span aria-hidden="true">01</span><span class="lbl" data-cs="O mně" data-en="About">About</span></a>
+    <a href="#work" aria-label="What I work on" data-cs-aria="Čemu se věnuju" data-en-aria="What I work on"><span aria-hidden="true">02</span><span class="lbl" data-cs="Čemu se věnuju" data-en="What I work on">What I work on</span></a>
+    <a href="#handson" aria-label="Hands-on" data-cs-aria="Praxe" data-en-aria="Hands-on"><span aria-hidden="true">03</span><span class="lbl" data-cs="Praxe" data-en="Hands-on">Hands-on</span></a>
+    <a href="#education" aria-label="Education and credentials" data-cs-aria="Vzdělání a kvalifikace" data-en-aria="Education and credentials"><span aria-hidden="true">04</span><span class="lbl" data-cs="Vzdělání a kvalifikace" data-en="Education and credentials">Education and credentials</span></a>
+    <a href="#projects" aria-label="Projects" data-cs-aria="Projekty" data-en-aria="Projects"><span aria-hidden="true">05</span><span class="lbl" data-cs="Projekty" data-en="Projects">Projects</span></a>
+    <a href="#contact" aria-label="Contact" data-cs-aria="Kontakt" data-en-aria="Contact"><span aria-hidden="true">06</span><span class="lbl" data-cs="Kontakt" data-en="Contact">Contact</span></a>
+  </nav>
+
   <div class="lang" role="group" aria-label="Language selection" data-cs-aria="Volba jazyka" data-en-aria="Language selection">
     <button type="button" data-lang="cs" aria-pressed="false">CS</button>
     <button type="button" data-lang="en" aria-pressed="true">EN</button>
@@ -157,13 +180,13 @@
   </figure>
 </section>
 
-<section class="about rv" aria-labelledby="s-about">
+<section id="about" class="about rv" aria-labelledby="s-about">
   <h2 class="eyebrow" id="s-about"><span aria-hidden="true">01</span><span data-cs="O mně" data-en="About">About</span></h2>
   <p data-cs="Baví mě věci, u kterých je vidět, jestli fungují, nebo ne." data-en="I like the kind of work where you can tell whether it works or not.">I like the kind of work where you can tell whether it works or not.</p>
-  <p data-cs="Na střední škole teleinformatiky jsem prošel celou cestu od zapojení a nakonfigurování Cisco routeru přes firewall a VPN až po svaření optického vlákna a jeho proměření. Od září pokračuju na VUT FEKT. Vedle sítí mě zajímá praktické využití AI a čas od času něco postavím na webu — třeba tuhle stránku." data-en="At secondary school in Ostrava I went the whole way: cabling and configuring Cisco routers, firewall rules and VPN tunnels, fusion splicing optical fiber and measuring it. From September I continue at Brno University of Technology. Beyond networks I'm interested in applied AI, and I build the occasional web project — this page among them.">At secondary school in Ostrava I went the whole way: cabling and configuring Cisco routers, firewall rules and VPN tunnels, fusion splicing optical fiber and measuring it. From September I continue at Brno University of Technology. Beyond networks I'm interested in applied AI, and I build the occasional web project — this page among them.</p>
+  <p data-cs="Na střední škole teleinformatiky jsem prošel celou cestu od zapojení a nakonfigurování Cisco routeru přes firewall a VPN až po svaření optického vlákna a jeho proměření. Od září pokračuju na VUT FEKT. Vedle sítí mě zajímá praktické využití AI." data-en="At secondary school in Ostrava I went the whole way: cabling and configuring Cisco routers, firewall rules and VPN tunnels, fusion splicing optical fiber and measuring it. From September I continue at Brno University of Technology. Beyond networks I'm interested in applied AI.">At secondary school in Ostrava I went the whole way: cabling and configuring Cisco routers, firewall rules and VPN tunnels, fusion splicing optical fiber and measuring it. From September I continue at Brno University of Technology. Beyond networks I'm interested in applied AI.</p>
 </section>
 
-<section class="rv" aria-labelledby="s-work">
+<section id="work" class="rv" aria-labelledby="s-work">
   <h2 class="eyebrow" id="s-work"><span aria-hidden="true">02</span><span data-cs="Čemu se věnuju" data-en="What I work on">What I work on</span></h2>
   <div class="rows">
     <div class="row">
@@ -185,7 +208,7 @@
   </div>
 </section>
 
-<section class="rv" aria-labelledby="s-handson">
+<section id="handson" class="rv" aria-labelledby="s-handson">
   <h2 class="eyebrow" id="s-handson"><span aria-hidden="true">03</span><span data-cs="Sáhl jsem si na" data-en="Hands-on with">Hands-on with</span></h2>
   <ul class="spec">
     <li data-cs="Cisco IOS · konfigurace přes konzoli" data-en="Cisco IOS · console configuration">Cisco IOS · console configuration</li>
@@ -200,7 +223,7 @@
   <p class="note" data-cs="Většina z toho vznikla ve školní laboratoři. Není to produkční praxe — ale je to práce s reálným hardwarem, ne klikání v simulátoru." data-en="Most of this comes from the school lab. It isn't production experience — but it is real hardware, not clicking around a simulator.">Most of this comes from the school lab. It isn't production experience — but it is real hardware, not clicking around a simulator.</p>
 </section>
 
-<section class="rv" aria-labelledby="s-edu">
+<section id="education" class="rv" aria-labelledby="s-edu">
   <h2 class="eyebrow" id="s-edu"><span aria-hidden="true">04</span><span data-cs="Vzdělání a kvalifikace" data-en="Education and credentials">Education and credentials</span></h2>
   <div class="tl">
     <div class="item">
@@ -234,7 +257,7 @@
   </div>
 </section>
 
-<section class="rv" aria-labelledby="s-projects">
+<section id="projects" class="rv" aria-labelledby="s-projects">
   <h2 class="eyebrow" id="s-projects"><span aria-hidden="true">05</span><span data-cs="Projekty" data-en="Projects">Projects</span></h2>
   <div class="rows">
     <div class="row">

@@ -80,4 +80,48 @@
     }, {threshold:.14, rootMargin:"0px 0px -8% 0px"});
     rv.forEach(function(el){ io.observe(el); });
   }
+
+  /* ---------- section nav highlight ---------- */
+  /* A second observer on purpose. The reveal one above drops each section with
+     unobserve() once it has appeared; this one has to keep reporting for as
+     long as the page is open, so the two cannot share. */
+  var navLinks = document.querySelectorAll(".secnav a");
+  if (navLinks.length && "IntersectionObserver" in window){
+    var watched = [];
+    /* #hero has no nav item. Watching it anyway is what clears the highlight
+       when the visitor scrolls back above the first numbered section. */
+    var hero = document.getElementById("hero");
+    if (hero) watched.push(hero);
+    navLinks.forEach(function(a){
+      var el = document.getElementById(a.getAttribute("href").slice(1));
+      if (el) watched.push(el);
+    });
+
+    var onScreen = {};
+    function markActive(){
+      for (var i = 0; i < watched.length; i++){
+        if (!onScreen[watched[i].id]) continue;
+        var href = "#" + watched[i].id;
+        /* "location" rather than "true": this is the current place within one
+           page, not the current page out of several */
+        navLinks.forEach(function(a){
+          if (a.getAttribute("href") === href) a.setAttribute("aria-current", "location");
+          else a.removeAttribute("aria-current");
+        });
+        return;
+      }
+      /* nothing on the band — happens past the last section, where leaving the
+         previous item lit is the right answer */
+    }
+
+    /* A band one percent tall, a fifth of the way down the viewport: whichever
+       section covers it is the one being read. Sections are contiguous, so the
+       band is always covered by one of them. Percentages rather than pixels
+       keep that true through a resize without rebuilding the observer. */
+    var navIo = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ onScreen[e.target.id] = e.isIntersecting; });
+      markActive();
+    }, {rootMargin:"-20% 0px -79% 0px"});
+    watched.forEach(function(el){ navIo.observe(el); });
+  }
 })();
