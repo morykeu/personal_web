@@ -1,28 +1,61 @@
 # Osobní web — Kryštof Moravec
 
-Jednostránkové osobní portfolio. Statický web, dvojjazyčný (čeština / angličtina),
-bez build procesu a bez závislostí — jen HTML, CSS a jeden soubor s JavaScriptem.
+Jednostránkové osobní portfolio, dvojjazyčné (čeština / angličtina). Výsledkem
+je pořád statický web — HTML, CSS a JavaScript bez serveru —, ale skládá ho
+build přes [Vite](https://vite.dev/).
+
+## Proč build
+
+Do října 2026 web žádný build neměl a bylo to záměrné: jeden HTML soubor,
+jedno CSS, jeden skript, nic k instalaci. Build vznikl kvůli plánované
+animované 3D scéně na pozadí (Three.js, GSAP ScrollTrigger, Lenis):
+
+- **Knihovny musí být z npm, ne z CDN.** CSP povoluje jen skripty z vlastní
+  domény (`script-src 'self'`), takže cokoli z cdnjs nebo unpkg by prohlížeč
+  odmítl. Bez buildu by se knihovny musely ručně kopírovat do repozitáře a
+  aktualizovat po jedné.
+- **Bez buildu by nefungovaly addony Three.js.** Importují holý specifikátor
+  `'three'`, na který prohlížeč potřebuje importmapu. Ta se dá zapsat jen
+  inline — a inline skript CSP zakazuje, pokud se mu nepovolí hashem.
+- **Rozdělení kódu.** Three.js má sám kolem 170 kB (gzip). Vite ho dá do
+  samostatného souboru, který se stáhne jen tehdy, když scéna opravdu poběží —
+  ne pro `prefers-reduced-motion`, úsporu dat nebo prohlížeč bez WebGL.
+
+Produkční build nevkládá do HTML žádný spustitelný inline skript, takže CSP
+zůstala beze změny. Jediný `<script>` bez `src` je `application/ld+json`,
+který prohlížeč nespouští.
 
 ## Struktura
 
 ```
 index.html            obsah stránky, meta tagy, JSON-LD, favicon jako inline SVG
-vercel.json           bezpečnostní hlavičky a cache pro fonty
-assets/css/style.css  veškeré styly včetně @font-face
-assets/js/app.js      přepínač jazyka, úvodní loader, animace při scrollování
-assets/fonts/         Space Grotesk a JetBrains Mono (woff2)
-assets/img/og.jpg     náhledový obrázek pro sdílení
+vercel.json           build pro Vercel, bezpečnostní hlavičky, cache pro fonty
+package.json          závislosti a skripty (dev / build / preview)
+src/style.css         veškeré styly včetně @font-face
+src/app.js            přepínač jazyka, úvodní loader, odhalování sekcí, navigace
+public/assets/fonts/  Space Grotesk a JetBrains Mono (woff2)
+public/assets/img/    náhledový obrázek pro sdílení
 ```
+
+`src/` Vite zpracuje a výsledné soubory pojmenuje hashem. `public/` kopíruje
+do buildu beze změny a pod stejnou cestou — fonty a náhledový obrázek proto
+leží tam, protože je odkazují pevné adresy (preload v `<head>` a absolutní
+`og:image`).
 
 Texty obou jazykových verzí jsou přímo v `index.html` v atributech `data-cs` a `data-en`.
 Přepínač jazyka je jen prohodí — druhá stránka ani překladový soubor neexistuje.
 Když se tedy něco upravuje, je potřeba upravit **obě** varianty textu.
 
+`src/app.js` posílá na `window` dvě události pro kód, který na stránce závisí:
+
+- `km:ready` — loader doběhl a stránka je odkrytá
+- `km:lang` — přepnul se jazyk, `event.detail.lang` je `"cs"` nebo `"en"`
+
 ## Fonty
 
-Space Grotesk a JetBrains Mono jsou uložené v `assets/fonts/`, ne načítané
-z Google Fonts. Důvody dva: nenačítá se nic z cizí domény (takže se ani
-neodesílá IP adresa návštěvníka třetí straně) a odpadá čekání na DNS a TLS
+Space Grotesk a JetBrains Mono jsou uložené v `public/assets/fonts/`, ne
+načítané z Google Fonts. Důvody dva: nenačítá se nic z cizí domény (takže se
+ani neodesílá IP adresa návštěvníka třetí straně) a odpadá čekání na DNS a TLS
 handshake ještě před vykreslením prvního písmene.
 
 Jsou to **variabilní** fonty — jeden soubor pokrývá celý rozsah řezů, proto
@@ -36,23 +69,32 @@ Oba fonty jsou pod SIL Open Font License 1.1.
 
 ## Spuštění lokálně
 
-Stačí otevřít `index.html` v prohlížeči. Kvůli konzistentnímu chování
-(relativní cesty, `localStorage`) je ale lepší pustit si jednoduchý server:
+Potřeba je Node.js `^20.19` nebo `>=22.12` (stejný požadavek jako má Vite).
 
 ```bash
-python -m http.server 5173
+npm install
 ```
 
-Potom otevřít <http://localhost:5173>.
-
-Alternativa bez Pythonu:
+Vývojový server s okamžitým překreslením po uložení:
 
 ```bash
-npx serve .
+npm run dev
 ```
 
-Žádná instalace závislostí, žádný build, žádný watch — po úpravě souboru
-stačí obnovit stránku (u CSS a JS případně tvrdý reload, `Ctrl+Shift+R`).
+Produkční build do `dist/` a jeho lokální náhled — to je přesně to, co pak
+poběží na Vercelu:
+
+```bash
+npm run build
+```
+
+```bash
+npm run preview
+```
+
+Pozor na jednu věc: `npm run preview` neposílá hlavičky z `vercel.json`, takže
+CSP se v něm neprojeví. Chybu typu „Refused to load…“ lokálně neuvidíš —
+změny, které by s CSP mohly kolidovat, je potřeba ověřit na preview nasazení.
 
 ## Nasazení
 
@@ -62,15 +104,15 @@ z GitHubu (repozitář `morykeu/personal_web`).
 - push do větve `main` → produkční nasazení
 - push do jiné větve nebo pull request → náhledové (preview) nasazení s vlastní URL
 
-Build se nespouští, jde o statické soubory. Ve Vercelu je projekt založený
-jako **Other** / bez frameworku:
+Nastavení buildu je ve `vercel.json`, takže přebíjí to, co je v projektu na
+Vercelu naklikané:
 
-| Nastavení        | Hodnota        |
-| ---------------- | -------------- |
-| Framework Preset | Other          |
-| Build Command    | *(prázdné)*    |
-| Output Directory | `.`            |
-| Install Command  | *(prázdné)*    |
+| Nastavení        | Hodnota          |
+| ---------------- | ---------------- |
+| Framework Preset | Vite             |
+| Build Command    | `npm run build`  |
+| Output Directory | `dist`           |
+| Install Command  | *(výchozí — `npm install`)* |
 
 ### Hlavičky
 
@@ -96,9 +138,9 @@ si prohlížeč i vyhledávače hodnotu vyloží jako relativní cestu.
 
 ### Náhledový obrázek
 
-`assets/img/og.jpg` (1200×630 px) je to, co se zobrazí při sdílení odkazu na
-LinkedInu, Facebooku, X nebo v Discordu. Je odkazovaný absolutní adresou
-z `og:image` a `twitter:image`.
+`public/assets/img/og.jpg` (1200×630 px) je to, co se zobrazí při sdílení
+odkazu na LinkedInu, Facebooku, X nebo v Discordu. Je odkazovaný absolutní
+adresou z `og:image` a `twitter:image`.
 
 Po jeho výměně je potřeba dát platformám vědět, že mají načíst novou verzi —
 mají odkazy dlouho v cache:
@@ -119,3 +161,7 @@ Stránka cílí na WCAG 2.1 AA:
 - orientační body `banner` / `main` / `contentinfo` a pojmenované sekce
 - respektuje `prefers-reduced-motion` — animace se vypnou
 - bez JavaScriptu se úvodní loader přeskočí a obsah zůstane čitelný
+
+Ten poslední bod hlídá blok `<noscript>` v `<head>`. Jeho pravidla mají
+`!important` záměrně: Vite při buildu přesune hlavní stylesheet až za něj,
+takže bez toho by bez JS přetekl loader přes celou stránku.

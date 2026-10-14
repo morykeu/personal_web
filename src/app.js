@@ -38,6 +38,10 @@
       b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
     });
     if (persist) store(lang);
+    /* Anything outside this file that depends on the copy (text lengths change
+       layout) listens here. Fires on every switch, including the initial one;
+       a listener attached later reads document.documentElement.lang instead. */
+    window.dispatchEvent(new CustomEvent("km:lang", {detail: {lang: lang}}));
   }
 
   /* runs while the loader still covers the page, so a cs → en swap never flashes */
@@ -57,6 +61,10 @@
     loader.classList.add("done");
     document.body.classList.remove("locked");
     hops.classList.add("ready");
+    /* Under reduced motion this runs synchronously while this file executes,
+       before any later module has had a chance to listen — so a listener
+       should first check #loader.done and only then wait for the event. */
+    window.dispatchEvent(new CustomEvent("km:ready"));
   }
   if (reduce){ finish(); }
   else {
