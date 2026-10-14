@@ -33,6 +33,7 @@ vercel.json           build pro Vercel, bezpečnostní hlavičky, cache pro font
 package.json          závislosti a skripty (dev / build / preview)
 src/style.css         veškeré styly včetně @font-face
 src/app.js            přepínač jazyka, úvodní loader, odhalování sekcí, navigace
+src/scene/            volitelná 3D scéna a plynulý scroll (viz níž)
 public/assets/fonts/  Space Grotesk a JetBrains Mono (woff2)
 public/assets/img/    náhledový obrázek pro sdílení
 ```
@@ -50,6 +51,42 @@ Když se tedy něco upravuje, je potřeba upravit **obě** varianty textu.
 
 - `km:ready` — loader doběhl a stránka je odkrytá
 - `km:lang` — přepnul se jazyk, `event.detail.lang` je `"cs"` nebo `"en"`
+
+## 3D scéna a plynulý scroll
+
+Vrstva navíc v `src/scene/`. Stránka na ní nezávisí — bez ní vypadá a funguje
+přesně jako dřív.
+
+```
+main.js     brána: rozhodne, co se stáhne (viz tabulka níž)
+scroll.js   Lenis + GSAP ScrollTrigger; podle sekce plynule tlumí stav scény
+states.js   stav scény pro každou sekci (klíčem je id sekce)
+layout.js   kam se glóbus vejde — měřeno z DOM, ne odhadnuté
+scene.js    renderer, napasování do volného místa, smyčka, odkrytí
+globe.js    drátěný ikosaedr, tělo, uzly (fibonacci), fresnelova aura
+packets.js  oblouky s pakety a svítící stopou
+orbits.js   oběžné dráhy se satelity
+stars.js    hvězdy
+glow.js     měkká textura pro body a sprity
+```
+
+| návštěvník | co dostane |
+| --- | --- |
+| `prefers-reduced-motion` | nic — nativní scroll, CSS pozadí (mřížka + glow) |
+| úspora dat nebo bez WebGL2 | jen plynulý scroll; CSS pozadí zůstává |
+| ostatní | plynulý scroll i scéna |
+
+Three.js je za dynamickým importem, takže si ho první dva řádky tabulky
+vůbec nestáhnou. Když scéna běží, má `<html>` třídu `.has-scene` — podle ní
+se schovají glow divy a za text se přidá tmavá clona, která drží kontrast
+nad 4,5 : 1.
+
+Barvy scéna čte z CSS proměnných `--violet`, `--magenta`, `--text` a `--ink`,
+takže změna palety v `:root` se do ní propíše sama.
+
+Ve vývojovém režimu (`npm run dev`) je v konzoli `window.__kmScene` — dá se
+s ním krokovat čas, přepočítat umístění a číst, kam se glóbus napasoval.
+Do produkčního buildu se nedostane.
 
 ## Fonty
 

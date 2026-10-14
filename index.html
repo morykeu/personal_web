@@ -52,6 +52,10 @@
 <link rel="stylesheet" href="/src/style.css">
 <!-- type="module" je pro Vite nutný; moduly se odkládají stejně jako defer. -->
 <script type="module" src="/src/app.js"></script>
+<!-- Volitelná vrstva: plynulý scroll a 3D scéna na pozadí. Sama rozhodne, co
+     stáhnout — při prefers-reduced-motion nic, při úspoře dat nebo bez WebGL2
+     jen scroll. Stránka na ní nijak nezávisí. -->
+<script type="module" src="/src/scene/main.js"></script>
 
 <!-- Strukturovaná data pro vyhledávače: spojují jméno s profily a školou. -->
 <script type="application/ld+json">

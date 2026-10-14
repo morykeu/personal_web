@@ -1,3 +1,7 @@
+/* Lenis' own rules (html.lenis, stopped state, iframes). Every selector is
+   scoped to .lenis, so they do nothing until smooth scrolling actually runs. */
+@import 'lenis/dist/lenis.css';
+
 /* ---------- fonty ----------
    Hostované lokálně místo fonts.gstatic.com, takže se při načtení stránky
    neodesílá IP adresa návštěvníka třetí straně a odpadají dvě cizí domény
@@ -62,9 +66,15 @@
      22px padding. The section nav is shorter than the switcher, so adding it
      did not change this. Sections offset their anchor targets by it. */
   --header-h:72px;
+  /* Dark halo behind text while the 3D scene runs (see "scene" below). At .9 a
+     pure-white pixel behind it still leaves --muted text at 4.65:1. */
+  --scrim:rgba(5,5,10,.9);
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
+/* Lenis animates scrolling itself and fights a second smoother, so CSS smooth
+   scrolling only applies while it is not running — which is also the no-JS and
+   reduced-motion case. */
+html:not(.lenis){scroll-behavior:smooth}
 body{
   margin:0;background:var(--ink);color:var(--text);
   font-family:var(--disp);font-weight:400;
@@ -80,9 +90,57 @@ body::before{
                    linear-gradient(90deg,var(--line) 1px,transparent 1px);
   background-size:64px 64px;opacity:.5;
 }
-.glow{position:fixed;border-radius:50%;filter:blur(120px);z-index:0;pointer-events:none}
+.glow{position:fixed;border-radius:50%;filter:blur(120px);z-index:0;pointer-events:none;transition:opacity 1.2s ease}
 .glow.a{width:720px;height:520px;top:-180px;right:-120px;background:rgba(124,58,237,.22)}
 .glow.b{width:560px;height:440px;bottom:-160px;left:-140px;background:rgba(236,72,153,.11)}
+
+/* ---------- scene ----------
+   The 3D background (src/scene). Everything below only applies once the scene
+   is actually running: .has-scene goes on <html> at reveal and comes off again
+   if the GPU context is lost. Without it — reduced motion, save-data, no WebGL2,
+   no JavaScript — the page keeps the grid and glows above, unchanged.
+
+   The canvas is transparent and sits on the grid; the glows give way to it. */
+.has-scene .glow{opacity:0}
+
+/* Created by JS as the first child of <body>. Height is 100lvh, not inset:0:
+   the large viewport height does not change when a mobile URL bar slides in or
+   out, so the canvas box — and with it the GPU buffer — stays put while
+   scrolling instead of being reallocated on every bar movement. */
+.scene{
+  position:fixed;top:0;left:0;right:0;z-index:0;pointer-events:none;
+  display:block;width:100%;height:100vh;height:100lvh;
+  opacity:0;transition:opacity 1.4s ease;
+}
+.scene.is-on{opacity:1}
+
+/* Text scrim. Stars cover the whole viewport and the globe can sit behind copy,
+   so every text block gets a dark halo of the page colour: invisible over the
+   plain background, but it keeps anything bright behind the text away from it.
+   The halo reaches 10 + 18 + 30 = 58px past the block (inset, spread, blur);
+   layout.js keeps the globe further than that from the hero copy.
+   z-index:-1 puts it under the text but over the canvas — the canvas is outside
+   .wrap, whose stacking context everything here paints in.
+
+   The hero headline is left out while the globe sits beside it. It is the
+   lightest text on the page, so the starfield alone cannot pull it under 4.5:1
+   (measured on rendered frames: never below 7:1, from 1280 to 1920px wide), and
+   its 17ch box runs well past its last letter — a scrim on that box would black
+   out the very space the globe uses. .scene-behind (set by scene.js) is the mode
+   where the globe is under the copy instead, and then it gets one too. */
+/* scroll.js focuses a section after an anchor jump so the next Tab starts
+   there, as a native jump would; the section itself is not a control */
+section[tabindex="-1"]:focus{outline:none}
+
+.has-scene :is(#hero .status,#hero .lede,#hero .hops,.eyebrow,.about p,.rows,.spec,.note,.tl,.mailto,.links,footer>span),
+.has-scene.scene-behind #hero h1{
+  position:relative;
+}
+.has-scene :is(#hero .status,#hero .lede,#hero .hops,.eyebrow,.about p,.rows,.spec,.note,.tl,.mailto,.links,footer>span)::before,
+.has-scene.scene-behind #hero h1::before{
+  content:"";position:absolute;inset:-6px -10px;z-index:-1;pointer-events:none;
+  border-radius:20px;background:var(--scrim);box-shadow:0 0 30px 18px var(--scrim);
+}
 
 /* ---------- loader ---------- */
 #loader{
@@ -103,14 +161,21 @@ header{
   display:flex;align-items:center;justify-content:space-between;
   padding:22px var(--pad);
   font-family:var(--mono);font-size:11px;letter-spacing:.26em;text-transform:uppercase;
+  /* A light veil: without it, page copy scrolling under the header and the
+     moving scene behind it both sit directly under 11px nav text. The rgba
+     line is the fallback for browsers without color-mix(). */
+  background:rgba(5,5,10,.7);
+  background:color-mix(in srgb,var(--ink) 70%,transparent);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
 }
 header .mark{color:var(--violet);text-decoration:none}
 header .mark b{color:var(--magenta);font-weight:500}
 
 /* ---------- section nav ---------- */
-/* Plain anchors — html{scroll-behavior:smooth} above animates the jump, so no
-   script sits behind the links. Only the active highlight needs JavaScript,
-   and without it the links still navigate.
+/* Plain anchors. Without JavaScript, html{scroll-behavior:smooth} above
+   animates the jump; with it, Lenis intercepts the click and scrolls with the
+   header offset (src/scene/scroll.js). Either way the links navigate on their
+   own — only the active highlight needs a script.
 
    Letter-spacing is tighter than the .26em the header sets: at .26em the six
    labels do not fit beside the monogram and the switcher until well past
@@ -334,7 +399,9 @@ footer{
   h1{max-width:none}
 }
 @media (prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto}
+  /* same selector as the rule it overrides — a bare html{} here would lose to
+     html:not(.lenis) on specificity and leave smooth scrolling on */
+  html:not(.lenis){scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
   .path{stroke-dashoffset:0}
   .node,.hoplbl,.hopms{opacity:.9}
