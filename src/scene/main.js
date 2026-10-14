@@ -29,9 +29,21 @@ function hasWebGL2() {
 }
 
 async function start() {
+  const root = document.documentElement;
   /* both requests leave together rather than one after the other */
   const scrollReady = import('./scroll.js');
   const sceneReady = !saveData && hasWebGL2() ? import('./scene.js') : null;
+
+  /* The loader (app.js) holds at 100 % while this class is on, so the shaders
+     compile under it — but for 1.2 s at most; a slow scene fades in after the
+     reveal instead of keeping the page covered. scene.js takes the class off
+     and announces km:scene once it is ready. */
+  if (sceneReady) root.classList.add('scene-pending');
+  const settle = () => {
+    if (!root.classList.contains('scene-pending')) return;
+    root.classList.remove('scene-pending');
+    window.dispatchEvent(new CustomEvent('km:scene'));
+  };
 
   const { initScroll } = await scrollReady;
   const scroll = initScroll();
@@ -43,8 +55,12 @@ async function start() {
   } catch (err) {
     /* the CSS background is still in place and nothing depends on the scene */
     document.querySelector('canvas.scene')?.remove();
-    document.documentElement.classList.remove('has-scene');
+    root.classList.remove('has-scene', 'scene-behind');
+    root.removeAttribute('data-trace-handoff');
+    window.dispatchEvent(new CustomEvent('km:trace'));
     console.warn('[scene] disabled:', err);
+  } finally {
+    settle();
   }
 }
 

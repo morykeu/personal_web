@@ -52,6 +52,12 @@ Když se tedy něco upravuje, je potřeba upravit **obě** varianty textu.
 - `km:ready` — loader doběhl a stránka je odkrytá
 - `km:lang` — přepnul se jazyk, `event.detail.lang` je `"cs"` nebo `"en"`
 
+A dvě poslouchá — posílá je 3D scéna (níž), pokud běží:
+
+- `km:scene` — scéna je zkompilovaná; loader na ni čeká nejvýš 1,2 s
+- `km:trace` — paket z glóbu doletěl na první hop; traceroute na něj čeká
+  nejvýš 2,5 s
+
 ## 3D scéna a plynulý scroll
 
 Vrstva navíc v `src/scene/`. Stránka na ní nezávisí — bez ní vypadá a funguje
@@ -59,15 +65,20 @@ přesně jako dřív.
 
 ```
 main.js     brána: rozhodne, co se stáhne (viz tabulka níž)
-scroll.js   Lenis + GSAP ScrollTrigger; podle sekce plynule tlumí stav scény
-states.js   stav scény pro každou sekci (klíčem je id sekce)
-layout.js   kam se glóbus vejde — měřeno z DOM, ne odhadnuté
-scene.js    renderer, napasování do volného místa, smyčka, odkrytí
-globe.js    drátěný ikosaedr, tělo, uzly (fibonacci), fresnelova aura
+scroll.js   Lenis, odkazy v rámci stránky, předávky mezi sekcemi (ScrollTrigger)
+states.js   co scéna dělá v které sekci — jen data, jednotky jsou popsané v souboru
+layout.js   kam se glóbus vejde v hero — měřeno z DOM, ne odhadnuté
+scene.js    renderer, míchání stavů podle scrollu, umístění, smyčka, odkrytí
+globe.js    drátěný ikosaedr, tělo, uzly (fibonacci, shlukování), aura, uzel „já“
 packets.js  oblouky s pakety a svítící stopou
+links.js    zvýrazněná spojení v sekci projektů
 orbits.js   oběžné dráhy se satelity
+beacon.js   paket od uzlu „já“ k divákovi v kontaktu
+trace.js    paket z glóbu na první hop traceroute v hero
+mask.js     díra ve scéně pod nadpisem hero a pod hlavičkou (kontrast)
 stars.js    hvězdy
-glow.js     měkká textura pro body a sprity
+glow.js     textury pro body, sprity a pulz
+debug.js    přehled pro ?debug=1
 ```
 
 | návštěvník | co dostane |
@@ -84,9 +95,60 @@ nad 4,5 : 1.
 Barvy scéna čte z CSS proměnných `--violet`, `--magenta`, `--text` a `--ink`,
 takže změna palety v `:root` se do ní propíše sama.
 
+### Stavy po sekcích
+
+Každá sekce má v `states.js` svůj stav (klíčem je id sekce): kde glóbus je
+a jak je velký, jas, rotace, hustota a rychlost paketů, shlukování uzlů,
+zvýraznění uzlu „já“, rozestup prstenců, úhel kamery… Mezi sousedními
+sekcemi se scéna míchá podle pozice scrollu — předávka začne, když horní hrana
+další sekce dojede na 85 % výšky okna, a skončí na 35 %. Funguje oběma směry;
+mezi předávkami stav drží. Po kliknutí na odkaz v navigaci míří scéna rovnou
+do cílového stavu a sekce mezi tím nepřehrává.
+
+| sekce | scéna |
+| --- | --- |
+| hero | glóbus vedle nadpisu, tak velký, jak místo dovolí, plný jas |
+| 01 O mně | kamera se přiblíží k uzlu „já“ (magenta, pulzující kroužek), zbytek ustoupí a ztmavne |
+| 02 Čemu se věnuju | uzly se shluknou — jeden shluk na položku sekce, oblouky vedou mezi nimi |
+| 03 Praxe | proud paketů: víc oblouků, rychlejší pakety i rotace |
+| 04 Vzdělání | prstence se rozestoupí a srovnají, satelity zpomalí |
+| 05 Projekty | klid, jedno zvýrazněné spojení na projekt |
+| 06 Kontakt | glóbus uprostřed za obsahem, uzel „já“ posílá pakety k divákovi |
+
+Počet shluků a spojení se bere z HTML (`.row` v `#work` a `#projects`), takže
+nový projekt dostane i nové spojení. Na dotykových zařízeních
+(`pointer: coarse`) jsou všechny stavy zjednodušené: glóbus za textem, nižší
+jas, kamera se nepřibližuje, poloviční počty prvků.
+
+### Velikost glóbu v hero
+
+Glóbus nesmí zasáhnout do nadpisu ani traceroute a musí být celý vidět, takže
+jeho velikost určuje volné místo vedle nadpisu. Na 1440×900 je to asi 36 %
+výšky okna, na 1920×1080 asi 48 % (tabulka je v `layout.js`). Limitem je
+nadpis: mezi 1280 a 1440 px má už plnou velikost a jeho druhý řádek sahá do
+~70 % šířky. Kdyby se zalomil do čtyř řádků (`max-width: 13ch`), uvolnilo by
+se místo na ~55 % — to by ale byla změna designu.
+
+### Loader a traceroute
+
+Loader drží na 100 %, dokud se scéna nezkompiluje, ale nejvýš 1,2 s — pak
+stránku odkryje a scéna se dorovná po něm. Počítadlo neztrácí krok s reálným
+časem: v záložce otevřené na pozadí běží časovače jednou za sekundu a loader
+počítaný jen po tikách tam trval 12 s.
+
+Když scéna běží, vyletí po odkrytí z glóbu paket, doletí na první uzel
+traceroute a teprve pak se trasa začne kreslit. Paket je prvek stránky, ne
+scény — za traceroute je clona, která by ho v canvasu pohltila.
+
+### Ladění
+
+S parametrem `?debug=1` se v rohu ukáže přehled: aktuální stav, která
+předávka běží a jak daleko je, scroll, umístění glóbu a FPS. Funguje i na
+produkci, ale kód se stáhne jen s parametrem.
+
 Ve vývojovém režimu (`npm run dev`) je v konzoli `window.__kmScene` — dá se
-s ním krokovat čas, přepočítat umístění a číst, kam se glóbus napasoval.
-Do produkčního buildu se nedostane.
+s ním krokovat čas, číst aktuální stav a umístění a přepočítat layout. Do
+produkčního buildu se nedostane.
 
 ## Fonty
 

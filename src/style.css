@@ -115,32 +115,53 @@ body::before{
 .scene.is-on{opacity:1}
 
 /* Text scrim. Stars cover the whole viewport and the globe can sit behind copy,
-   so every text block gets a dark halo of the page colour: invisible over the
+   so every piece of text gets a dark halo of the page colour: invisible over the
    plain background, but it keeps anything bright behind the text away from it.
-   The halo reaches 10 + 18 + 30 = 58px past the block (inset, spread, blur);
-   layout.js keeps the globe further than that from the hero copy.
+   The halo reaches 10 + 18 + 30 = 58px past its box (inset, spread, blur);
+   layout.js keeps the hero globe further than that from the hero copy.
    z-index:-1 puts it under the text but over the canvas — the canvas is outside
    .wrap, whose stacking context everything here paints in.
 
-   The hero headline is left out while the globe sits beside it. It is the
-   lightest text on the page, so the starfield alone cannot pull it under 4.5:1
-   (measured on rendered frames: never below 7:1, from 1280 to 1920px wide), and
-   its 17ch box runs well past its last letter — a scrim on that box would black
-   out the very space the globe uses. .scene-behind (set by scene.js) is the mode
-   where the globe is under the copy instead, and then it gets one too. */
+   The boxes are the text's own, not its containers': a row, a list or an
+   eyebrow spans the full width while its words take a part of it, and a scrim
+   on the container would black out the globe wherever it sits beside the
+   copy. The timeline's title is a block, so it is shrunk to its words. Every
+   one of these is either inline-level, capped in ch, or a grid cell.
+
+   The hero headline is left out while the globe sits beside it: its 17ch box
+   runs well past its last letter, and a scrim on that box would black out the
+   very space the globe uses. Instead the scene itself is cut away under each
+   line of the headline (src/scene/mask.js). .scene-behind (set by scene.js) is
+   the mode where the globe is under the copy instead, and then the headline
+   gets a scrim too. */
 /* scroll.js focuses a section after an anchor jump so the next Tab starts
    there, as a native jump would; the section itself is not a control */
 section[tabindex="-1"]:focus{outline:none}
 
-.has-scene :is(#hero .status,#hero .lede,#hero .hops,.eyebrow,.about p,.rows,.spec,.note,.tl,.mailto,.links,footer>span),
+.has-scene .tl .body>strong{width:fit-content}
+
+.has-scene :is(#hero .status,#hero .lede,#hero .hops,.eyebrow>span,.about p,.row h3,.row p,.row .repo,.spec li,.note,.tl .yr,.tl .body>*,.mailto,.links>*,footer>span),
 .has-scene.scene-behind #hero h1{
   position:relative;
 }
-.has-scene :is(#hero .status,#hero .lede,#hero .hops,.eyebrow,.about p,.rows,.spec,.note,.tl,.mailto,.links,footer>span)::before,
+.has-scene :is(#hero .status,#hero .lede,#hero .hops,.eyebrow>span,.about p,.row h3,.row p,.row .repo,.spec li,.note,.tl .yr,.tl .body>*,.mailto,.links>*,footer>span)::before,
 .has-scene.scene-behind #hero h1::before{
   content:"";position:absolute;inset:-6px -10px;z-index:-1;pointer-events:none;
   border-radius:20px;background:var(--scrim);box-shadow:0 0 30px 18px var(--scrim);
 }
+
+/* The packet that flies from the globe to the first hop (src/scene/trace.js).
+   Placed by transform from the top-left of #hops; z-index:-1 in .wrap's
+   stacking context paints it after the scrims above and before any text. */
+.trace-packet{
+  position:absolute;left:0;top:0;z-index:-1;pointer-events:none;
+  width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;opacity:0;
+  background:#fff;box-shadow:0 0 10px 3px var(--magenta),0 0 22px 6px rgba(232,121,249,.35);
+}
+.trace-packet.landed{animation:land .5s ease-out forwards}
+/* the landing flares and fades in place; no scale — with the position held in
+   transform, a scale would carry the dot away from the hop */
+@keyframes land{to{opacity:0;box-shadow:0 0 16px 9px var(--magenta),0 0 36px 16px rgba(232,121,249,0)}}
 
 /* ---------- loader ---------- */
 #loader{

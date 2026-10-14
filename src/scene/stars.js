@@ -27,9 +27,12 @@ export function createStars({ colors, glow, count }) {
 
   return {
     points,
-    update({ time, opacity }) {
+    /* size: the camera-angle correction from scene.js, so a wider angle does
+       not inflate the dots */
+    update({ time, opacity, size }) {
       points.rotation.y = time * 0.01;
       points.material.opacity = opacity;
+      points.material.size = 0.24 * size;
     }
   };
 }

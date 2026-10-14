@@ -1,24 +1,26 @@
 import {
   AdditiveBlending, BufferAttribute, BufferGeometry, DynamicDrawUsage, Group,
-  LineSegments, Points, QuadraticBezierCurve3, ShaderMaterial, Vector3
+  LineSegments, Points, ShaderMaterial, Vector3
 } from 'three';
 
-const ARCS = 26;
-const SEG = 48;               // segments per arc
-const LIFT = 0.45;            // arc apex height, as a share of the chord
+const BASE = 26;              // arcs in flight at `packets: 1`
+const POOL = 42;              // enough for the busiest state (handson asks for 1.6×)
+const SEG = 40;               // segments per arc
 const TRAIL = 0.35;           // trail length, as a share of the arc
 const PACKET_SIZE = 0.75;
 
-/* Furthest any arc can reach from the centre: the longest allowed chord,
-   lifted. layout fitting needs it as part of the composition's hull. */
-export const arcReach = R => R + 5 * LIFT;
+/* Arcs between nodes, each carrying a packet with a glowing trail. All arcs
+   live in one LineSegments and all packets in one Points, so the whole network
+   is two draw calls. Routes are recycled in place rather than allocated.
 
-/* All arcs live in one LineSegments and all packets in one Points, so the
-   whole network is two draw calls instead of two per route. Routes are recycled
-   in place — when a packet lands its arc is rewritten into the same buffer
-   rather than allocating fresh geometry and a material each time. */
-export function createNetwork({ R, nodes, colors, lite, glow }) {
-  const count = lite ? ARCS / 2 : ARCS;
+   An arc stores the two node indices it joins, not their positions: the nodes
+   move (clustering), and the arc is rebuilt from them whenever they do, so the
+   ends stay attached. Arcs beyond the count the state asks for finish their
+   flight and then park, collapsed to a point, until they are wanted again. */
+export function createNetwork({ R, globe, colors, lite, glow }) {
+  const base = lite ? BASE / 2 : BASE;
+  const count = lite ? BASE / 2 : POOL;     // touch: never more than Phase 1 had
+  const { nodes, members } = globe;
   const vPerArc = SEG * 2;
 
   const pos = new Float32Array(count * vPerArc * 3);
@@ -38,7 +40,7 @@ export function createNetwork({ R, nodes, colors, lite, glow }) {
   arcGeo.setAttribute('aT', new BufferAttribute(aT, 1));
   arcGeo.setAttribute('aArc', new BufferAttribute(aArc, 1));
 
-  const heads = new Float32Array(count);
+  const heads = new Float32Array(count).fill(-1);
   const arcMat = new ShaderMaterial({
     transparent: true, depthWrite: false, blending: AdditiveBlending,
     defines: { ARC_COUNT: count, TRAIL: TRAIL.toFixed(3) },
@@ -121,48 +123,110 @@ export function createNetwork({ R, nodes, colors, lite, glow }) {
   const group = new Group();
   group.add(arcLines, packets);
 
-  const routes = [];
-  const tmp = new Vector3();
+  const arcs = Array.from({ length: count }, () => ({ a: 0, b: 0, t: 0, speed: 1, live: false }));
+  const ctrl = Array.from({ length: count }, () => new Vector3());
+  const _p = new Vector3();
+  let lift = 0.4, seenVersion = -1, primed = false, dirty = false;
 
-  function route(a, delay) {
-    let from, to, d, tries = 0;
-    do {
-      from = nodes[(Math.random() * nodes.length) | 0];
-      to = nodes[(Math.random() * nodes.length) | 0];
-      d = from.distanceTo(to);
-    } while ((d < 1.6 || d > 5) && ++tries < 50);
-    const mid = from.clone().add(to).multiplyScalar(0.5).setLength(R + d * LIFT);
-    const pts = new QuadraticBezierCurve3(from, mid, to).getPoints(SEG);
-    const base = a * vPerArc * 3;
-    for (let s = 0; s < SEG; s++) {
-      pts[s].toArray(pos, base + s * 6);
-      pts[s + 1].toArray(pos, base + s * 6 + 3);
+  const any = () => (Math.random() * nodes.length) | 0;
+  const from = list => list[(Math.random() * list.length) | 0];
+
+  /* With clustering on, an arc joins two different clusters — the whole point
+     of that state is traffic between them. Otherwise any two nodes whose chord
+     is neither trivially short nor straight through the globe. */
+  function pick(r, cluster) {
+    if (members.length > 1 && Math.random() < cluster) {
+      const k = (Math.random() * members.length) | 0;
+      const j = (k + 1 + ((Math.random() * (members.length - 1)) | 0)) % members.length;
+      r.a = from(members[k]);
+      r.b = from(members[j]);
+      return;
     }
-    posAttr.needsUpdate = true;
-    routes[a] = { pts, t: -Math.random() * delay, speed: 0.35 + Math.random() * 0.35 };
+    let tries = 0, d;
+    do {
+      r.a = any();
+      r.b = any();
+      d = nodes[r.a].distanceTo(nodes[r.b]) / R;
+    } while ((d < 0.53 || d > 1.67) && ++tries < 50);
   }
-  for (let a = 0; a < count; a++) route(a, 3);
+
+  const point = (i, t, out) => {
+    const r = arcs[i], u = 1 - t;
+    return out.copy(nodes[r.a]).multiplyScalar(u * u)
+      .addScaledVector(ctrl[i], 2 * u * t)
+      .addScaledVector(nodes[r.b], t * t);
+  };
+
+  /* quadratic bezier lifted off the surface by a share of its chord */
+  function build(i) {
+    const r = arcs[i];
+    const d = nodes[r.a].distanceTo(nodes[r.b]);
+    ctrl[i].addVectors(nodes[r.a], nodes[r.b]).multiplyScalar(0.5).setLength(R + d * lift);
+    const o = i * vPerArc * 3;
+    for (let s = 0; s < SEG; s++) {
+      point(i, s / SEG, _p).toArray(pos, o + s * 6);
+      point(i, (s + 1) / SEG, _p).toArray(pos, o + s * 6 + 3);
+    }
+  }
+
+  function park(i) {
+    arcs[i].live = false;
+    heads[i] = -1;
+    pktAlpha[i] = 0;
+    pos.fill(0, i * vPerArc * 3, (i + 1) * vPerArc * 3);
+    dirty = true;
+  }
+
+  function route(i, delay, cluster) {
+    const r = arcs[i];
+    pick(r, cluster);
+    r.t = -Math.random() * delay;
+    r.speed = 0.35 + Math.random() * 0.35;
+    r.live = true;
+    build(i);
+    dirty = true;
+  }
+
+  for (let i = 0; i < count; i++) park(i);
 
   return {
     group,
-    update({ dt, speed, running, alpha, scale, pointScale }) {
+    update({ dt, packets: wanted, speed, lift: nextLift, cluster, running, alpha, scale, pointScale }) {
       arcMat.uniforms.uAlpha.value = alpha;
       pktMat.uniforms.uOpacity.value = alpha;
       pktMat.uniforms.uSize.value = PACKET_SIZE * scale;
       pktMat.uniforms.uScale.value = pointScale;
-      for (let a = 0; a < count; a++) {
-        const r = routes[a];
-        if (running) r.t += dt * r.speed * speed;
-        heads[a] = r.t;
-        if (r.t >= 0 && r.t <= 1) {
-          const f = r.t * SEG, i = Math.min(f | 0, SEG - 1);
-          tmp.lerpVectors(r.pts[i], r.pts[i + 1], f - i).toArray(pktPos, a * 3);
-          pktAlpha[a] = 1;
-        } else {
-          pktAlpha[a] = 0;
+
+      const want = Math.min(count, Math.round(wanted * base));
+      const rebuild = globe.version !== seenVersion || Math.abs(nextLift - lift) > 1e-4;
+      seenVersion = globe.version;
+      lift = nextLift;
+
+      for (let i = 0; i < count; i++) {
+        const r = arcs[i];
+        if (!r.live) {
+          if (i >= want) continue;
+          route(i, primed ? 1.2 : 3, cluster);   // the first batch staggered wider
+        } else if (rebuild) {
+          build(i);
+          dirty = true;
         }
-        if (r.t > 1 + TRAIL) route(a, 1.5);
+        if (running) r.t += dt * r.speed * speed;
+        if (r.t > 1 + TRAIL) {
+          if (i < want) route(i, 0.6, cluster);
+          else { park(i); continue; }
+        }
+        heads[i] = r.t;
+        if (r.t >= 0 && r.t <= 1) {
+          point(i, r.t, _p).toArray(pktPos, i * 3);
+          pktAlpha[i] = 1;
+        } else {
+          pktAlpha[i] = 0;
+        }
       }
+      primed = true;
+      if (dirty) posAttr.needsUpdate = true;
+      dirty = false;
       pktPosAttr.needsUpdate = true;
       pktAlphaAttr.needsUpdate = true;
     }

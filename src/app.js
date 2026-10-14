@@ -57,10 +57,25 @@
       loader = document.getElementById("loader"),
       hops = document.getElementById("hops");
 
+  var root = document.documentElement;
+
+  /* Waits for `event` while `pending` says so, but never longer than `ms`. */
+  function waitFor(pending, event, ms, go){
+    var gone = false;
+    function once(){ if (!gone){ gone = true; go(); } }
+    if (!pending) return once();
+    window.addEventListener(event, once, { once: true });
+    setTimeout(once, ms);
+  }
+
   function finish(){
     loader.classList.add("done");
     document.body.classList.remove("locked");
-    hops.classList.add("ready");
+    /* The 3D scene, if it runs, sends a packet from the globe to the first hop
+       and starts the trace as it lands (src/scene/trace.js). */
+    waitFor(root.hasAttribute("data-trace-handoff"), "km:trace", 2500, function(){
+      hops.classList.add("ready");
+    });
     /* Under reduced motion this runs synchronously while this file executes,
        before any later module has had a chance to listen — so a listener
        should first check #loader.done and only then wait for the event. */
@@ -68,10 +83,22 @@
   }
   if (reduce){ finish(); }
   else {
-    var n = 0;
+    /* The count is random, but never behind the clock. A background tab runs
+       timers at most once a second, and a count made only of ticks took ten
+       seconds there; this way it ends one tick after COUNT_MS at worst. */
+    var COUNT_MS = 1100;
+    var n = 0, t0 = Date.now();
     var t = setInterval(function(){
-      n += Math.random() * 13 + 4;
-      if (n >= 100){ n = 100; clearInterval(t); setTimeout(finish, 320); }
+      n = Math.max(n + Math.random() * 13 + 4, (Date.now() - t0) / COUNT_MS * 100);
+      if (n >= 100){
+        n = 100;
+        clearInterval(t);
+        /* A 3D scene still compiling its shaders (src/scene/main.js) gets up to
+           1.2 s more under the loader; past that it fades in after the reveal. */
+        waitFor(root.classList.contains("scene-pending"), "km:scene", 1200, function(){
+          setTimeout(finish, 320);
+        });
+      }
       pct.textContent = Math.floor(n) + "%";
       fill.style.right = (100 - n) + "%";
     }, 90);

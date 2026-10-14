@@ -1,25 +1,34 @@
-import {
-  Color, Euler, Group, Matrix4, PerspectiveCamera, Quaternion, Scene, Vector2, Vector3, WebGLRenderer
-} from 'three';
+import { Color, Group, PerspectiveCamera, Scene, Vector2, Vector3, WebGLRenderer } from 'three';
 import { gsap } from 'gsap';
-import { glowTexture } from './glow.js';
+import { glowTexture, ringTexture } from './glow.js';
 import { createGlobe } from './globe.js';
-import { createNetwork, arcReach } from './packets.js';
+import { createNetwork } from './packets.js';
+import { createLinks } from './links.js';
 import { createOrbits } from './orbits.js';
+import { createBeacon } from './beacon.js';
 import { createStars } from './stars.js';
-import { heroFrame } from './layout.js';
+import { createTrace } from './trace.js';
+import { heroPlacement } from './layout.js';
+import { createCopyMask } from './mask.js';
+import { states, forTouch, ORDER, KEYS } from './states.js';
 
 const R = 3;                               // globe radius, world units
-const BASE = new Vector3(0, 1.2, 14);      // camera rest pose
+const CAM = 14;                            // camera distance from the globe's centre
+const ELEVATION = 1.2;                     // camera height at that distance
+const BASE_FOV = 45;                       // the angle point sizes were tuned at
 const INTRO = 2.6;                         // seconds from reveal to the full scene
 const INTRO_SPIN = -2.2;                   // world turn the intro unwinds from, rad
-const BEHIND = 0.42;                       // brightness when the globe sits under the copy
+const BEHIND = 0.42;                       // hero brightness when the globe sits under the copy
 const PARALLAX = new Vector2(0.8, 0.5);    // camera travel at the window edge, world units
-
-/* one entry per composition a state can ask for (states.js `frame`) */
-const FRAMES = { hero: heroFrame };
+/* How fast the scene follows the scroll position, 1/s. Lenis already smooths
+   the scroll; this only takes the edge off a fast flick. After an anchor jump
+   the scene is aimed at the destination instead, and travels there slower,
+   in one move. */
+const FOLLOW = 6;
+const SETTLE = 2.4;
 
 const ease = t => 1 - Math.pow(1 - Math.min(Math.max(t, 0), 1), 3);
+const smooth = t => t * t * (3 - 2 * t);
 
 /* palette comes from the stylesheet, so a colour changed in :root reaches the
    scene without touching this file */
@@ -37,16 +46,6 @@ function readColors() {
   };
 }
 
-function fibonacciSphere(radius, n) {
-  const out = [];
-  const golden = Math.PI * (3 - Math.sqrt(5));
-  for (let i = 0; i < n; i++) {
-    const y = 1 - (i / (n - 1)) * 2, r = Math.sqrt(1 - y * y), th = i * golden;
-    out.push(new Vector3(Math.cos(th) * r, y, Math.sin(th) * r).multiplyScalar(radius));
-  }
-  return out;
-}
-
 export async function initScene(scroll) {
   const root = document.documentElement;
   const lite = matchMedia('(pointer: coarse)').matches;
@@ -62,96 +61,80 @@ export async function initScene(scroll) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lite ? 1 : 1.5));
 
   const scene = new Scene();
-  const camera = new PerspectiveCamera(45, 1, 0.1, 200);
+  const camera = new PerspectiveCamera(BASE_FOV, 1, 0.1, 200);
   const colors = readColors();
   const glow = glowTexture();
 
+  /* counts come from the page, so a fifth project gets a fifth link */
+  const clusters = document.querySelectorAll('#work .row').length;
+  const projects = document.querySelectorAll('#projects .row').length;
+
   const world = new Group();
   scene.add(world);
-  const globe = createGlobe({ R, colors, lite, glow });
-  const network = createNetwork({ R, nodes: globe.nodes, colors, lite, glow });
-  globe.core.add(network.group);
+  const globe = createGlobe({ R, colors, lite, glow, ring: ringTexture(), clusters });
+  const network = createNetwork({ R, globe, colors, lite, glow });
+  const links = createLinks({ R, globe, count: projects, colors, glow });
+  globe.core.add(network.group, links.group);
   const orbits = createOrbits({ R, colors, glow });
   world.add(globe.core, globe.aura, orbits.group);
+  const beacon = createBeacon({ colors, glow });
+  scene.add(...beacon.sprites);
   const stars = createStars({ colors, glow, count: lite ? 900 : 1800 });
   scene.add(stars.points);
+  const mask = createCopyMask();
+  scene.traverse(o => { if (o.material) mask.apply(o.material); });
 
-  /* --- fitting the composition into the free space ----------------------- */
+  /* --- states as vectors ------------------------------------------------- */
 
-  /* Outline of everything that can be drawn around the globe: the reach of
-     the tallest arc (which also covers the aura) and the orbit rings. The core
-     is the globe with its aura — the part that has to stay fully on screen. */
-  const hull = [...fibonacciSphere(arcReach(R), 96), ...orbits.hull()];
-  const coreHull = fibonacciSphere(R * 1.18, 64);
-  /* the intro turns the world through these angles; fitting all of them keeps
-     the rings clear of the copy while they swing into place */
-  const angles = [0, INTRO_SPIN / 3, (2 * INTRO_SPIN) / 3, INTRO_SPIN];
+  /* Every state becomes a plain array in KEYS order, so blending is a loop.
+     The hero's placement is filled in from the page by fit(). */
+  const IX = Object.fromEntries(KEYS.map((k, i) => [k, i]));
+  const vectors = {};
+  for (const key of ORDER) {
+    const s = lite ? forTouch(states[key]) : states[key];
+    vectors[key] = Float64Array.from(KEYS, k => s[k]);
+  }
+  const heroBright = vectors.hero[IX.bright];
+  const segments = scroll.segments;        // progress() fills one value per segment, in this order
+  const progress = new Float64Array(segments.length);
+  const target = new Float64Array(KEYS.length);
+  const current = new Float64Array(KEYS.length);
+  const S = {};                            // `current` with names, for the parts
 
-  const _m = new Matrix4(), _q = new Quaternion(), _e = new Euler();
-  const _v = new Vector3(), _s = new Vector3(), _o = new Vector3();
-  let W = 0, H = 0, fitScale = 1, frameIntensity = 1, placed = null;
-
-  function bounds(points, scale) {
-    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-    for (const ry of angles) {
-      _m.compose(_o, _q.setFromEuler(_e.set(0, ry, 0)), _s.setScalar(scale));
-      for (const p of points) {
-        _v.copy(p).applyMatrix4(_m).project(camera);
-        const x = ((_v.x + 1) / 2) * W, y = ((1 - _v.y) / 2) * H;
-        if (x < x0) x0 = x; if (x > x1) x1 = x;
-        if (y < y0) y0 = y; if (y > y1) y1 = y;
-      }
-    }
-    return { x0, x1, y0, y1, w: x1 - x0, h: y1 - y0 };
+  /* The state at scroll position y. Hand-overs are applied in order, each
+     mixing towards its section by its own progress — where two windows
+     overlap (a short section, a tall window), the result is still continuous. */
+  function aim(y) {
+    scroll.progress(y, progress);
+    target.set(vectors[scroll.first]);
+    segments.forEach((s, i) => {
+      const t = smooth(progress[i]);
+      if (t <= 0) return;
+      const v = vectors[s.to];
+      for (let k = 0; k < target.length; k++) target[k] += (v[k] - target[k]) * t;
+    });
   }
 
-  /* Scale the world until its outline fits the frame, then shift the lens
-     (setViewOffset) so the outline lands on the frame. A lens shift keeps the
-     globe seen head-on wherever it ends up on screen; moving the globe
-     off-axis instead would show it from the side.
+  /* --- placement ---------------------------------------------------------- */
 
-     beside: the outline's left edge sits on the frame's left edge, and the
-             globe body must end before the frame's right edge (the canvas
-             edge). The rings are wide and flat, so letting them run off the
-             right side is what buys the globe a usable size.
-     behind: the whole outline fits the frame, pushed to its right edge. The
-             copy is left-aligned, so the right side is where the space is —
-             centred, half the globe would sit under the headline's scrim.
-             On a phone the outline fills the width and this is a no-op. */
+  let W = 0, H = 0, hero = null, scale = 1, fovK = 1;
+
+  const header = document.querySelector('header');
+  let bar = null;
+
+  /* measured hero placement → the hero's vector, in the same viewport
+     fractions every other state is written in */
   function fit() {
-    const frame = (FRAMES[scroll.frame] || heroFrame)(W);
-    camera.clearViewOffset();
-    camera.aspect = W / H;
-    camera.position.copy(BASE);
-    camera.lookAt(0, 0, 0);
-    camera.updateProjectionMatrix();
-    camera.updateMatrixWorld();
-
-    const fw = frame.right - frame.left, fh = frame.bottom - frame.top;
-    const beside = frame.mode === 'beside';
-    let s = 1;
-    for (let i = 0; i < 4; i++) {           // perspective makes size non-linear in scale
-      const full = bounds(hull, s);
-      const across = beside ? bounds(coreHull, s).x1 - full.x0 : full.w;
-      s *= Math.min(fw / across, fh / full.h);
-    }
-    const b = bounds(hull, s);
-    const core = bounds(coreHull, s);       // both measured before the lens shift below
-    const cx = beside ? frame.left + b.w / 2 : frame.right - b.w / 2;
-    const cy = (frame.top + frame.bottom) / 2;
-    const dx = cx - (b.x0 + b.x1) / 2, dy = cy - (b.y0 + b.y1) / 2;
-    camera.setViewOffset(W, H, -dx, -dy, W, H);
-
-    world.scale.setScalar(s);
-    fitScale = s;
-    frameIntensity = beside ? 1 : BEHIND;
+    hero = heroPlacement(W, H);
+    /* the header band; PAD widens it by 4px, so it is drawn 4px short */
+    bar = { l: -100, r: W + 100, t: -100, b: header.getBoundingClientRect().height - 4 };
+    const v = vectors.hero;
+    v[IX.x] = hero.cx / W;
+    v[IX.y] = hero.cy / H;
+    v[IX.size] = hero.d / Math.min(W, H);
+    v[IX.bright] = heroBright * (hero.mode === 'beside' ? 1 : BEHIND);
     /* the headline only needs its own scrim when the globe is under it */
-    root.classList.toggle('scene-behind', !beside);
-    placed = {
-      frame,
-      outline: { left: b.x0 + dx, right: b.x1 + dx, top: b.y0 + dy, bottom: b.y1 + dy },
-      globe: { left: core.x0 + dx, right: core.x1 + dx, top: core.y0 + dy, bottom: core.y1 + dy }
-    };
+    root.classList.toggle('scene-behind', hero.mode !== 'beside');
   }
 
   /* The canvas is 100lvh tall (style.css), which does not change when a mobile
@@ -165,9 +148,6 @@ export async function initScene(scroll) {
     return true;
   }
 
-  /* --- frame loop -------------------------------------------------------- */
-
-  let time = 0, revealedAt = -1;
   const pointer = new Vector2(), mouse = new Vector2();
   if (parallax) {
     window.addEventListener('pointermove', e => {
@@ -175,24 +155,79 @@ export async function initScene(scroll) {
     }, { passive: true });
   }
 
+  /* Places the globe from the state: centre at (x, y) of the window, diameter
+     `size` of its shorter side. The world is scaled until the sphere subtends
+     exactly that on screen at the current camera angle, then the lens is
+     shifted (setViewOffset) to move it there. A lens shift keeps the globe
+     seen head-on wherever it lands; moving it off-axis would show it from the
+     side. With the size held, a wider angle can only mean a camera closer to
+     the globe — which is how `fov` zooms in. */
+  function frame(dt) {
+    const fov = S.fov;
+    const tanHalf = Math.tan((fov * Math.PI) / 360);
+    const d = S.size * Math.min(W, H);
+    const theta = Math.atan((d / H) * tanHalf);
+    scale = (Math.hypot(CAM, ELEVATION) * Math.sin(theta)) / R;
+    fovK = Math.tan((BASE_FOV * Math.PI) / 360) / tanHalf;
+    world.scale.setScalar(scale);
+
+    mouse.lerp(pointer, 1 - Math.exp(-dt * 3));
+    const p = S.parallax;
+    camera.position.set(mouse.x * PARALLAX.x * p, ELEVATION - mouse.y * PARALLAX.y * p, CAM);
+    camera.lookAt(0, 0, 0);
+    camera.fov = fov;
+    camera.aspect = W / H;
+    camera.setViewOffset(W, H, -(S.x * W - W / 2), -(S.y * H - H / 2), W, H);   // also updates the projection
+  }
+
+  /* --- frame loop -------------------------------------------------------- */
+
+  let time = 0, revealedAt = -1, snap = true;
+  const origin = new Vector3();
+  let trace = null;
+
   function step(dt) {
     time += dt;
     const reveal = revealedAt < 0 ? 0 : ease((time - revealedAt) / INTRO);
-    const st = scroll.state;
-    const alpha = reveal * st.intensity * frameIntensity;
 
-    mouse.lerp(pointer, 1 - Math.exp(-dt * 3));
-    camera.position.set(BASE.x + mouse.x * PARALLAX.x, BASE.y - mouse.y * PARALLAX.y, BASE.z);
-    camera.lookAt(0, 0, 0);
+    const jump = scroll.jump;
+    aim(jump ? jump.y : scroll.y);
+    const k = snap ? 1 : 1 - Math.exp(-dt * (jump ? SETTLE : FOLLOW));
+    snap = false;
+    for (let i = 0; i < current.length; i++) {
+      current[i] += (target[i] - current[i]) * k;
+      S[KEYS[i]] = current[i];
+    }
+
+    frame(dt);
     world.rotation.y = (1 - reveal) * INTRO_SPIN;
+    const alpha = reveal * S.bright;
+    const pointScale = H * renderer.getPixelRatio() * 0.5 * fovK;
 
-    globe.update({ time, dt, state: st, reveal, alpha, scale: fitScale });
+    world.updateMatrixWorld();
+    origin.copy(globe.nodes[globe.me]).applyMatrix4(globe.core.matrixWorld);
+    const flare = beacon.update({ dt, beacon: S.beacon, origin, camera, scale, reveal });
+
+    /* the marker follows the globe's size on screen, within limits */
+    const rpx = (S.size * Math.min(W, H)) / 2;
+    const marker = {
+      size: Math.min(Math.max(rpx * 0.16, 36), 90),
+      px: (2 * Math.tan((S.fov * Math.PI) / 360)) / (H * scale)
+    };
+    globe.update({ time, dt, state: S, reveal, alpha, scale: scale * fovK, auraBoost: flare, marker });
     network.update({
-      dt, speed: st.packets, running: reveal > 0.6, alpha, scale: fitScale,
-      pointScale: H * renderer.getPixelRatio() * 0.5
+      dt, packets: S.packets, speed: S.speed, lift: S.lift, cluster: S.cluster,
+      running: reveal > 0.6, alpha, scale, pointScale
     });
-    orbits.update({ time, alpha });
-    stars.update({ time, opacity: st.stars * reveal });
+    /* the highlighted links stand out of a dimmed globe */
+    links.update({ time, alpha: reveal * S.links * Math.min(1, S.bright * 1.6), scale: scale * fovK });
+    orbits.update({ dt, alpha: alpha * S.rings, spread: S.spread, align: S.align, stack: S.stack, sats: S.sats });
+    stars.update({ time, opacity: S.stars * reveal, size: fovK });
+
+    if (trace && revealedAt >= 0) {
+      trace.update(dt, time - revealedAt, { cx: S.x * W, cy: S.y * H, r: (S.size * Math.min(W, H)) / 2 });
+    }
+    mask.update({ page: hero.ink, fixed: [bar] }, window.scrollY, H, renderer.getPixelRatio());
     renderer.render(scene, camera);
   }
 
@@ -206,7 +241,12 @@ export async function initScene(scroll) {
 
   function tick(_, deltaMs) {
     if (document.hidden) return;
-    if (resizeDirty) { resizeDirty = false; if (resize()) layoutDirty = true; }
+    if (resizeDirty) {
+      resizeDirty = false;
+      /* a resize jumps straight to the new placement — easing it would
+         leave the globe trailing behind the window's edge */
+      if (resize()) { layoutDirty = true; snap = true; }
+    }
     if (layoutDirty) { layoutDirty = false; fit(); }
     step(Math.min(deltaMs / 1000, 0.05));
   }
@@ -223,32 +263,66 @@ export async function initScene(scroll) {
 
   resize();
   fit();
+  /* Points sizes, the beacon and the links are all hidden until the reveal,
+     so the first pass puts every part on screen at least once: each material
+     gets its program compiled now, under the loader, not on first sight. */
+  links.group.visible = true;
   await renderer.compileAsync(scene, camera);
   step(0);
 
   function reveal() {
     revealedAt = time;
+    snap = true;
     root.classList.add('has-scene');
     canvas.classList.add('is-on');
     gsap.ticker.add(tick);
   }
+
+  const debug = new URLSearchParams(location.search).has('debug');
+  const dominant = () => {
+    let key = scroll.first;
+    segments.forEach((s, i) => { if (progress[i] >= 0.5) key = s.to; });
+    return key;
+  };
+  const read = () => {
+    const i = segments.findIndex((_, j) => progress[j] > 0 && progress[j] < 1);
+    const jump = scroll.jump;
+    return {
+      state: dominant(),
+      blend: i < 0 ? '—' : `${segments[i].from} → ${segments[i].to}`,
+      progress: i < 0 ? 'hold' : progress[i].toFixed(2),
+      scroll: Math.round(scroll.y),
+      jump: jump && jump.to,
+      globe: `${Math.round(S.x * W)}, ${Math.round(S.y * H)}  ⌀${Math.round(S.size * Math.min(W, H))}px`,
+      mode: `${lite ? 'touch' : 'pointer'} · hero ${hero.mode} · fov ${S.fov.toFixed(0)}`
+    };
+  };
+  if (debug) import('./debug.js').then(m => m.initDebug(read));
 
   if (import.meta.env.DEV) {
     /* dev-only handle for stepping and inspecting frames; compiled out of the
        production build because import.meta.env.DEV is replaced with false */
     window.__kmScene = {
       renderer, camera, world, stars: stars.points, lenis: scroll.lenis,
-      get placed() { return placed; },
-      get scale() { return fitScale; },
+      get hero() { return hero; },
+      get state() { return { ...S }; },
+      get scale() { return scale; },
+      read,
       reveal,
       advance(seconds, fps = 60) { for (let i = 0; i < seconds * fps; i++) step(1 / fps); },
-      refit() { resize(); fit(); }
+      refit() { resize(); fit(); snap = true; }
     };
   }
 
+  /* ready: lets the loader go (main.js / app.js) */
+  root.classList.remove('scene-pending');
+  window.dispatchEvent(new CustomEvent('km:scene'));
+
   const loader = document.getElementById('loader');
   if (loader && !loader.classList.contains('done')) {
+    trace = createTrace(root);
     await new Promise(resolve => window.addEventListener('km:ready', resolve, { once: true }));
   }
   reveal();
 }
+
