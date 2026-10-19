@@ -166,6 +166,105 @@ section[tabindex="-1"]:focus{outline:none}
    transform, a scale would carry the dot away from the hop */
 @keyframes land{to{opacity:0;box-shadow:0 0 16px 9px var(--magenta),0 0 36px 16px rgba(232,121,249,0)}}
 
+/* ---------- motion ----------
+   Micro-animations (src/motion). Every rule below is scoped to .has-motion,
+   which the module sets on <html> when it runs — never under reduced motion,
+   never without JavaScript — so without it nothing here applies and nothing
+   is hidden. Only transform and opacity move. */
+
+/* Scroll progress, along the header's lower edge. Inside the header, which
+   clips the packet's glow: page text scrolls past just below that edge, and a
+   glow spilling over it was measured taking it down to 1:1. */
+.has-motion header{overflow:clip}
+.progress,.progress-head{position:absolute;left:0;bottom:0;pointer-events:none}
+.progress{
+  right:0;height:1px;transform-origin:left;transform:scaleX(0);
+  background:linear-gradient(90deg,var(--violet),var(--magenta));
+}
+.progress-head{
+  width:6px;height:6px;margin:0 0 -2.5px -3px;border-radius:50%;opacity:0;
+  background:#fff;box-shadow:0 0 6px 2px var(--magenta),0 0 14px 4px rgba(232,121,249,.35);
+  transition:opacity .3s;
+}
+
+/* the active nav item: one line gliding between items instead of each
+   link's own underline (100px wide, scaled to the link by navline.js) */
+.has-motion .secnav{position:relative}
+.has-motion .secnav a[aria-current="location"]{border-color:transparent}
+.secnav-line{
+  position:absolute;left:0;bottom:0;width:100px;height:1px;opacity:0;pointer-events:none;
+  background:var(--violet);transform-origin:left;
+  transition:transform .5s cubic-bezier(.2,.7,.2,1),opacity .3s;
+}
+
+/* magnetic links: the pull is `translate`, set every frame, so it must not
+   be eased a second time by their own `transition: all` */
+.has-motion .magnet{transition-property:color,background-color,border-color}
+
+/* cards arrive one after another once their section is revealed */
+.has-motion :is(#work,#projects) .row{
+  --d:calc(var(--i,0) * 90ms + 150ms);
+  transition:background .3s,opacity .6s ease var(--d),translate .7s cubic-bezier(.2,.7,.2,1) var(--d);
+}
+.has-motion :is(#work,#projects):not(.in) .row{opacity:0;translate:0 18px}
+
+/* Card sheen. On the rows it is the row's ::before at z-index -1: earlier in
+   the tree than the scrims behind the row's text (scene block above), so it
+   paints under them and can never brighten what is behind muted copy. Violet
+   at .11 over the page colour stays far below what muted text can take. */
+.has-motion .row.tilt{position:relative}
+.has-motion .row.tilt::before{
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:0;
+  background:radial-gradient(360px 90px at var(--mx,50%) var(--my,50%),rgba(167,139,250,.11),transparent);
+  transition:opacity .45s;
+}
+.has-motion .row.is-tilting::before{opacity:1}
+
+/* Hands-on prints like terminal output: each item appears outright at its
+   own moment (--i, --step and --delay come from reveal.js, which times the
+   caret by the same numbers). The items' ::before is their dash and ::after
+   their scrim, so their sheen is a background — the text here is --text, not
+   muted, and keeps over 4.5:1 with it. */
+@property --sheen{syntax:'<number>';inherits:false;initial-value:0}
+.has-motion #handson{position:relative}
+.has-motion #handson .spec li{
+  --d:calc(var(--i,0) * var(--step,70ms) + var(--delay,220ms));
+  transition:opacity 0s linear var(--d),--sheen .45s;
+}
+.has-motion #handson:not(.in) .spec li{opacity:0}
+.has-motion .spec li.tilt{
+  background:radial-gradient(240px circle at var(--mx,50%) var(--my,50%),rgb(167 139 250 / calc(var(--sheen) * .16)),transparent 70%);
+}
+.has-motion .spec li.is-tilting{--sheen:1}
+.term-caret{
+  position:absolute;left:0;top:0;width:9px;height:1.1em;opacity:0;pointer-events:none;
+  background:var(--magenta);box-shadow:0 0 8px rgba(232,121,249,.6);
+}
+
+/* Education: a rail in the left margin, drawn by the scroll (timeline.js),
+   with a node per entry that lights up as the line reaches it */
+.has-motion .tl{position:relative;--rail:calc(-1 * min(28px, var(--pad) * .5))}
+.tl-rail,.tl-head{position:absolute;left:var(--rail);top:0;pointer-events:none}
+.tl-rail{
+  bottom:0;width:1px;margin-left:-.5px;transform-origin:top;transform:scaleY(0);
+  background:linear-gradient(var(--violet),var(--magenta));
+}
+.tl-head{
+  width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%;opacity:0;
+  background:#fff;box-shadow:0 0 8px 2px var(--magenta);transition:opacity .3s;
+}
+.has-motion .tl .item{position:relative}
+.has-motion .tl .item::before,.has-motion .tl .item::after{
+  content:"";position:absolute;left:var(--rail);top:calc(clamp(20px,2.6vw,30px) + .55em);
+  width:7px;height:7px;margin:-3.5px 0 0 -3.5px;border-radius:50%;pointer-events:none;box-sizing:border-box;
+}
+.has-motion .tl .item::before{border:1px solid rgba(167,139,250,.45);background:var(--ink)}
+.has-motion .tl .item::after{
+  background:var(--magenta);box-shadow:0 0 10px var(--magenta);opacity:0;transform:scale(.4);
+  transition:opacity .35s,transform .35s;
+}
+.has-motion .tl .item.lit::after{opacity:1;transform:none}
+
 /* ---------- loader ---------- */
 #loader{
   position:fixed;inset:0;z-index:100;background:var(--ink);

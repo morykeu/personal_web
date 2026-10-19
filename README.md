@@ -34,6 +34,7 @@ package.json          závislosti a skripty (dev / build / preview)
 src/style.css         veškeré styly včetně @font-face
 src/app.js            přepínač jazyka, úvodní loader, odhalování sekcí, navigace
 src/scene/            volitelná 3D scéna a plynulý scroll (viz níž)
+src/motion/           mikroanimace v sekcích (viz níž)
 public/assets/fonts/  Space Grotesk a JetBrains Mono (woff2)
 public/assets/img/    náhledový obrázek pro sdílení
 ```
@@ -84,8 +85,8 @@ debug.js    přehled pro ?debug=1
 | návštěvník | co dostane |
 | --- | --- |
 | `prefers-reduced-motion` | nic — nativní scroll, CSS pozadí (mřížka + glow) |
-| úspora dat nebo bez WebGL2 | jen plynulý scroll; CSS pozadí zůstává |
-| ostatní | plynulý scroll i scéna |
+| úspora dat nebo bez WebGL2 | plynulý scroll a mikroanimace; CSS pozadí zůstává |
+| ostatní | plynulý scroll, mikroanimace i scéna |
 
 Three.js je za dynamickým importem, takže si ho první dva řádky tabulky
 vůbec nestáhnou. Když scéna běží, má `<html>` třídu `.has-scene` — podle ní
@@ -149,6 +150,33 @@ produkci, ale kód se stáhne jen s parametrem.
 Ve vývojovém režimu (`npm run dev`) je v konzoli `window.__kmScene` — dá se
 s ním krokovat čas, číst aktuální stav a umístění a přepočítat layout. Do
 produkčního buildu se nedostane.
+
+## Mikroanimace
+
+`src/motion/` přidává drobné pohyby v sekcích. Načte ho brána v
+`src/scene/main.js` pro každého kromě `prefers-reduced-motion`, s WebGL
+i bez něj. Všechna pravidla, na kterých závisí, jsou v `style.css` pod
+třídou `.has-motion`, kterou modul nastaví, až když běží — bez JavaScriptu
+a s reduced motion je stránka přesně ta statická.
+
+```
+index.js     spojí všechno dohromady; jediná funkce na gsap.ticker
+pointer.js   poloha myši, sdílená pro všechno, co ji sleduje
+progress.js  průběh scrollu: linka na spodní hraně hlavičky s paketem na čele
+navline.js   aktivní položka navigace: jedna linka, která přejíždí mezi položkami
+reveal.js    odhalení sekce: dekódování čísla, karty postupně, Hands-on jako terminál
+timeline.js  vzdělání: kolejnice časové osy kreslená scrollem
+magnet.js    odkazy v hlavičce a kontaktu se přitáhnou k myši (max 6 px)
+tilt.js      karty se natočí k myši (max 6°) s odleskem, který ji sleduje
+```
+
+Kdy je sekce odhalená, rozhoduje dál `app.js` (třída `.in`). Pohyb sekce
+samotné zůstává přechodem v CSS a GSAP na `.rv` nikdy nesahá — karty jedou
+také přes CSS, jen zpožděné podle pořadí. Hýbe se jen `transform`
+a `opacity` a rozměry prvků se čtou při událostech (najetí myší, změna
+velikosti, přepnutí jazyka), nikdy uvnitř snímku. Magnet a náklon běží jen
+s myší (`pointer: fine`). Čísla sekcí nemají `data-cs`, takže je `setLang`
+nepřepisuje; přepnutí jazyka i tak každé dekódování hned dokončí.
 
 ## Fonty
 

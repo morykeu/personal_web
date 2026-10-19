@@ -2,8 +2,9 @@
    decides how much of it a visitor gets, and downloads only that:
 
      prefers-reduced-motion   nothing: native scroll, CSS background
-     save-data or no WebGL2   smooth scroll only; CSS background stays
-     otherwise                smooth scroll and the 3D scene
+     save-data or no WebGL2   smooth scroll and the section micro-animations
+                              (src/motion); CSS background stays
+     otherwise                all of that and the 3D scene
 
    three.js sits behind a dynamic import, so it is a separate chunk that is
    never fetched by anyone in the first two rows.
@@ -32,6 +33,7 @@ async function start() {
   const root = document.documentElement;
   /* both requests leave together rather than one after the other */
   const scrollReady = import('./scroll.js');
+  const motionReady = import('../motion/index.js');
   const sceneReady = !saveData && hasWebGL2() ? import('./scene.js') : null;
 
   /* The loader (app.js) holds at 100 % while this class is on, so the shaders
@@ -47,6 +49,13 @@ async function start() {
 
   const { initScroll } = await scrollReady;
   const scroll = initScroll();
+  /* the page reads fine without them, so a failure stays a warning */
+  try {
+    (await motionReady).initMotion(scroll);
+  } catch (err) {
+    document.documentElement.classList.remove('has-motion');
+    console.warn('[motion] disabled:', err);
+  }
   if (!sceneReady) return;
 
   try {
