@@ -16,8 +16,8 @@ const TURN = 3;             // how firmly `face` steers, 1/s
 /* the mouse: nodes within REACH of the ray under it lean towards it by PULL
    of the distance and light up by GLOW */
 const REACH = 0.9;
-const PULL = 0.2;
-const GLOW = 1.8;
+const PULL = 0.14;
+const GLOW = 1.1;
 
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 const wrap = a => a - Math.PI * 2 * Math.floor((a + Math.PI) / (Math.PI * 2));

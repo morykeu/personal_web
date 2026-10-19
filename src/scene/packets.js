@@ -10,7 +10,7 @@ const TRAIL = 0.35;           // trail length, as a share of the arc
 const PACKET_SIZE = 0.75;
 /* the mouse: a packet within REACH of the ray under it runs up to RUSH× faster */
 const REACH = 1.1;
-const RUSH = 1.8;
+const RUSH = 1;
 
 /* Arcs between nodes, each carrying a packet with a glowing trail. All arcs
    live in one LineSegments and all packets in one Points, so the whole network

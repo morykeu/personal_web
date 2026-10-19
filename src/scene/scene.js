@@ -10,7 +10,8 @@ import { createStars } from './stars.js';
 import { createTrace } from './trace.js';
 import { heroPlacement } from './layout.js';
 import { createCopyMask } from './mask.js';
-import { createLens } from './lens.js';
+import { createLens, tune } from './lens.js';
+import { createBudget } from './budget.js';
 import { fine, pointer, flags } from '../motion/pointer.js';
 import { states, forTouch, ORDER, KEYS } from './states.js';
 
@@ -45,6 +46,25 @@ function readColors() {
     lilac: violet.clone().lerp(read('--text'), 0.45),   // the prototype's third tone, derived
     body: read('--ink').lerp(violet, 0.06),
     white: new Color(1, 1, 1)
+  };
+}
+
+/* The lens works in sRGB, like the canvas it redraws, so it takes the
+   palette as plain hex rather than as three's linear colours. */
+function lensColors() {
+  const cs = getComputedStyle(document.documentElement);
+  const rgb = name => {
+    const n = parseInt(cs.getPropertyValue(name).trim().replace('#', ''), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const mix = (a, b, t) => '#' + a.map((v, i) => Math.round(v + (b[i] - v) * t).toString(16).padStart(2, '0')).join('');
+  const violet = rgb('--violet'), magenta = rgb('--magenta'), text = rgb('--text'), ink = rgb('--ink');
+  return {
+    violet: mix(violet, violet, 0),
+    magenta: mix(magenta, magenta, 0),
+    lilac: mix(violet, text, 0.45),
+    disc: mix(ink, violet, 0.05),
+    ink: mix(ink, ink, 0)
   };
 }
 
@@ -85,8 +105,16 @@ export async function initScene(scroll) {
   scene.add(stars.points);
   const mask = createCopyMask();
   scene.traverse(o => { if (o.material) mask.apply(o.material); });
-  /* the lens and the pull towards the mouse exist only with a mouse */
-  const lens = fine && !lite ? createLens({ renderer, mask, colors }) : null;
+  /* The lens and the pull towards the mouse exist only with a mouse. If the
+     lens cannot be set up, nothing is lost: the CSS scrims stay on. */
+  let lens = null;
+  if (fine && !lite) {
+    try {
+      lens = createLens({ renderer, budget: createBudget(), colors: lensColors() });
+    } catch (err) {
+      console.warn('[lens] disabled:', err);
+    }
+  }
 
   /* --- states as vectors ------------------------------------------------- */
 
@@ -250,7 +278,9 @@ export async function initScene(scroll) {
     }
     mask.update({ page: hero.ink, fixed: [bar] }, window.scrollY, H, renderer.getPixelRatio());
     renderer.render(scene, camera);
-    if (lens && revealedAt >= 0 && lens.update(dt, H)) lens.render();
+    /* every frame, not only while the drop is shown: with a mouse the pass
+       is also what keeps the text readable (budget.js) */
+    if (lens && revealedAt >= 0) { lens.update(dt, W, H); lens.render(); }
   }
 
   /* Watching the canvas box rather than window resize: the scrollbar appearing
@@ -283,6 +313,7 @@ export async function initScene(scroll) {
      and nothing else on the page notices. */
   canvas.addEventListener('webglcontextlost', () => {
     gsap.ticker.remove(tick);
+    lens?.dispose();
     root.classList.remove('has-scene');
     canvas.classList.remove('is-on');
   }, { once: true });
@@ -323,11 +354,11 @@ export async function initScene(scroll) {
       jump: jump && jump.to,
       globe: `${Math.round(S.x * W)}, ${Math.round(S.y * H)}  ⌀${Math.round(S.size * Math.min(W, H))}px`,
       mode: `${lite ? 'touch' : 'pointer'} · hero ${hero.mode} · fov ${S.fov.toFixed(0)}`,
-      lens: lens ? lens.power.toFixed(2) : 'off (no mouse)',
+      lens: lens ? (lens.visible ? 'on' : 'hidden') + ' · contrast budget on' : 'off (no mouse) · CSS scrims',
       cpu
     };
   };
-  if (debug) import('./debug.js').then(m => m.initDebug(read, lens ? flags : null, timing));
+  if (debug) import('./debug.js').then(m => m.initDebug(read, lens ? { flags, tune } : null, timing));
 
   if (import.meta.env.DEV) {
     /* dev-only handle for stepping and inspecting frames; compiled out of the

@@ -153,6 +153,19 @@ section[tabindex="-1"]:focus{outline:none}
   border-radius:20px;background:var(--scrim);box-shadow:0 0 30px 18px var(--scrim);
 }
 
+/* With a mouse the lens (src/scene/lens.js) has to show over text as well,
+   so the scrims make way: the scene pass itself dims whatever is under a line
+   of text to what that line can take (src/scene/budget.js). .has-lens is set
+   only once that pass is in place; without it — touch, a failed lens — the
+   scrims above stay exactly as they are. */
+.has-lens :is(#hero .status,#hero .lede,#hero .hops,.eyebrow>span,.about p,.row h3,.row p,.row .repo,.note,.tl .yr,.tl .body>*,.mailto,.links>*,footer>span)::before,
+.has-lens .spec li::after,
+.has-lens.scene-behind #hero h1::before{content:none}
+
+/* The drop over the header: a copy of it, inside the header, above the
+   veil and below the header's own text (lens.js draws it). */
+.lens-copy{position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none}
+
 /* The packet that flies from the globe to the first hop (src/scene/trace.js).
    Placed by transform from the top-left of #hops; z-index:-1 in .wrap's
    stacking context paints it after the scrims above and before any text. */
@@ -264,19 +277,6 @@ section[tabindex="-1"]:focus{outline:none}
   transition:opacity .35s,transform .35s;
 }
 .has-motion .tl .item.lit::after{opacity:1;transform:none}
-
-/* Custom cursor (src/motion/cursor.js): a dot on the mouse and a disc that
-   follows it, both inverting what is under them. Shown only while .has-cursor
-   is on <html> — a mouse in the window — and the native cursor is hidden for
-   exactly that long. */
-.cursor-dot,.cursor-disc{
-  position:fixed;left:0;top:0;z-index:300;pointer-events:none;border-radius:50%;
-  background:#fff;mix-blend-mode:difference;opacity:0;transition:opacity .2s;
-}
-.cursor-dot{width:6px;height:6px;margin:-3px 0 0 -3px}
-.cursor-disc{width:28px;height:28px;margin:-14px 0 0 -14px}
-.has-cursor .cursor-dot,.has-cursor .cursor-disc{opacity:1}
-.has-cursor,.has-cursor *{cursor:none!important}
 
 /* ---------- loader ---------- */
 #loader{

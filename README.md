@@ -77,7 +77,8 @@ orbits.js   oběžné dráhy se satelity
 beacon.js   paket od uzlu „já“ k divákovi v kontaktu
 trace.js    paket z glóbu na první hop traceroute v hero
 mask.js     díra ve scéně pod nadpisem hero a pod hlavičkou (kontrast)
-lens.js     čočka kolem kurzoru: lom, duhová disperze, vlnění, mřížka sítě
+lens.js     čočka pod kurzorem: tmavá kapka s lomem a perleťovým leskem
+budget.js   rozpočet kontrastu: jak jasné smí být pozadí pod každým řádkem textu
 stars.js    hvězdy
 glow.js     textury pro body, sprity a pulz
 debug.js    přehled pro ?debug=1
@@ -142,33 +143,48 @@ Když scéna běží, vyletí po odkrytí z glóbu paket, doletí na první uzel
 traceroute a teprve pak se trasa začne kreslit. Paket je prvek stránky, ne
 scény — za traceroute je clona, která by ho v canvasu pohltila.
 
-### Kurzor a čočka
+### Čočka pod kurzorem
 
-Jen s myší (`pointer: fine`) a nikdy s `prefers-reduced-motion`:
+Jen s myší (`pointer: fine`), se scénou a nikdy s `prefers-reduced-motion`.
+Systémový kurzor zůstává, jak je; čočka je ve scéně pod ním.
 
-- **Kurzor** (`src/motion/cursor.js`): tečka přesně na myši a kruh, který
-  ji s malým zpožděním následuje, oba s `mix-blend-mode: difference`. Nad
-  odkazy, tlačítky a kartami kruh naroste. Nativní kurzor je skrytý jen po
-  dobu, kdy je vlastní vidět (třída `.has-cursor` na `<html>`) — po opuštění
-  okna nebo dotyku se vrátí.
-- **Čočka** (`src/scene/lens.js`): kolem kurzoru zvětšuje scénu, k okraji
-  rozkládá barvy do duhy a za rychlým pohybem nechává vlnění. Uvnitř je vidět
-  jemná mřížka uzlů a spojů. Scéna se vykreslí do canvasu jako vždy, hotový
-  snímek se zkopíruje do textury a jeden trojúhelník přes celou plochu ho
-  překreslí přes shader. (Render target to není schválně: three do něj kreslí
-  v lineárních barvách a aditivní záře by pak vypadaly jinak než bez čočky.)
-  Běží jen se scénou a s myší v okně, v rozlišení canvasu (strop DPR 1,5).
-  Nad textem slábne na třetinu.
-- **Scéna** reaguje na paprsek pod kurzorem: blízké uzly se k němu přitáhnou
-  a rozsvítí, pakety poblíž zrychlí.
+- **Vzhled** (`src/scene/lens.js`): tmavá skleněná kapka, asi 80 px. Uvnitř
+  se scéna láme jako přes polokouli (posun podle normály, jemná chromatická
+  aberace) a po okraji se přelévá perleťový lesk jen v barvách webu —
+  fialová, magenta, světlá lila. Nejsilnější je u okraje, uprostřed je
+  kapka tmavá; barvy se pomalu posouvají s časem a se směrem pohybu.
+- **Pohyb**: pozice jde přes pružinu (tuhost 170, tlumení 16 — o něco méně,
+  než je kritické, takže po zastavení lehce dokmitne). V rychlém pohybu se
+  kapka protáhne po směru a zúží napříč; protažení má vlastní pružinu, takže
+  se chvěje jako gel. Nad odkazem, tlačítkem nebo kartou naroste a změkne,
+  při kliknutí se smáčkne a vyšle kruh, v klidu se zmenší, mimo okno zmizí.
+- **Scéna** reaguje na paprsek pod kurzorem: blízké uzly se k němu jemně
+  přitáhnou a rozsvítí, pakety poblíž zrychlí.
+
+Scéna se vykreslí do canvasu jako vždy, hotový snímek se zkopíruje do
+textury a jeden průchod přes celou plochu canvas překreslí — s kapkou navrch.
+(Render target to není schválně: three do něj kreslí v lineárních barvách
+a aditivní záře scény by pak vypadaly jinak.)
+
+**Kontrast.** Aby byla kapka vidět i pod textem, nahradí s myší CSS clony
+(`.has-lens`) *rozpočet kontrastu* (`src/scene/budget.js`): pro každý řádek
+textu se z jeho skutečné barvy spočítá, jak jasné smí být pozadí, aby
+zůstalo 4,7 : 1, a ten limit se nakreslí do malé textury. Stejný průchod
+pak pod textem udělá canvas neprůhledný (zakryje i CSS mřížku) a ořízne jas
+— scény i kapky — přesně na limit. Šedý text tak snese skoro jen tmu,
+bílý nadpis mnohem víc. Odkaz pod myší, který mění barvu, se přepočítává
+každý snímek. Kapka v hlavičce se kreslí do malé kopie uvnitř hlavičky,
+nad závojem a pod jejím textem. Na dotyku a bez čočky zůstávají clony.
 
 ### Ladění
 
 S parametrem `?debug=1` se v rohu ukáže přehled: aktuální stav, která
-předávka běží a jak daleko je, scroll, umístění glóbu, síla čočky, FPS a čas
-snímku scény. S myší má navíc přepínače jednotlivých efektů kurzoru a tlačítko
-A/B, které změří dvě sekundy bez efektů a dvě s nimi (FPS a čas snímku včetně
-GPU). Funguje i na produkci, ale kód se stáhne jen s parametrem.
+předávka běží a jak daleko je, scroll, umístění glóbu, stav čočky, FPS a čas
+snímku scény. S myší má navíc přepínače (čočka, aberace, reakce scény),
+posuvníky pro ladění čočky (velikost, tuhost a tlumení pružiny, síla lomu,
+intenzita lesku — mění se za běhu) a tlačítko A/B, které změří dvě sekundy
+bez efektů a dvě s nimi (FPS a čas snímku včetně GPU). Funguje i na produkci,
+ale kód se stáhne jen s parametrem.
 
 Ve vývojovém režimu (`npm run dev`) je v konzoli `window.__kmScene` — dá se
 s ním krokovat čas, číst aktuální stav a umístění a přepočítat layout. Do
@@ -191,7 +207,6 @@ reveal.js    odhalení sekce: dekódování čísla, karty postupně, Hands-on j
 timeline.js  vzdělání: kolejnice časové osy kreslená scrollem
 magnet.js    odkazy v hlavičce a kontaktu se přitáhnou k myši (max 6 px)
 tilt.js      karty se natočí k myši (max 6°) s odleskem, který ji sleduje
-cursor.js    vlastní kurzor: tečka a kruh, které invertují, co je pod nimi
 ```
 
 Kdy je sekce odhalená, rozhoduje dál `app.js` (třída `.in`). Pohyb sekce
