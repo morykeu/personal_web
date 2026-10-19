@@ -77,6 +77,7 @@ orbits.js   oběžné dráhy se satelity
 beacon.js   paket od uzlu „já“ k divákovi v kontaktu
 trace.js    paket z glóbu na první hop traceroute v hero
 mask.js     díra ve scéně pod nadpisem hero a pod hlavičkou (kontrast)
+lens.js     čočka kolem kurzoru: lom, duhová disperze, vlnění, mřížka sítě
 stars.js    hvězdy
 glow.js     textury pro body, sprity a pulz
 debug.js    přehled pro ?debug=1
@@ -141,11 +142,33 @@ Když scéna běží, vyletí po odkrytí z glóbu paket, doletí na první uzel
 traceroute a teprve pak se trasa začne kreslit. Paket je prvek stránky, ne
 scény — za traceroute je clona, která by ho v canvasu pohltila.
 
+### Kurzor a čočka
+
+Jen s myší (`pointer: fine`) a nikdy s `prefers-reduced-motion`:
+
+- **Kurzor** (`src/motion/cursor.js`): tečka přesně na myši a kruh, který
+  ji s malým zpožděním následuje, oba s `mix-blend-mode: difference`. Nad
+  odkazy, tlačítky a kartami kruh naroste. Nativní kurzor je skrytý jen po
+  dobu, kdy je vlastní vidět (třída `.has-cursor` na `<html>`) — po opuštění
+  okna nebo dotyku se vrátí.
+- **Čočka** (`src/scene/lens.js`): kolem kurzoru zvětšuje scénu, k okraji
+  rozkládá barvy do duhy a za rychlým pohybem nechává vlnění. Uvnitř je vidět
+  jemná mřížka uzlů a spojů. Scéna se vykreslí do canvasu jako vždy, hotový
+  snímek se zkopíruje do textury a jeden trojúhelník přes celou plochu ho
+  překreslí přes shader. (Render target to není schválně: three do něj kreslí
+  v lineárních barvách a aditivní záře by pak vypadaly jinak než bez čočky.)
+  Běží jen se scénou a s myší v okně, v rozlišení canvasu (strop DPR 1,5).
+  Nad textem slábne na třetinu.
+- **Scéna** reaguje na paprsek pod kurzorem: blízké uzly se k němu přitáhnou
+  a rozsvítí, pakety poblíž zrychlí.
+
 ### Ladění
 
 S parametrem `?debug=1` se v rohu ukáže přehled: aktuální stav, která
-předávka běží a jak daleko je, scroll, umístění glóbu a FPS. Funguje i na
-produkci, ale kód se stáhne jen s parametrem.
+předávka běží a jak daleko je, scroll, umístění glóbu, síla čočky, FPS a čas
+snímku scény. S myší má navíc přepínače jednotlivých efektů kurzoru a tlačítko
+A/B, které změří dvě sekundy bez efektů a dvě s nimi (FPS a čas snímku včetně
+GPU). Funguje i na produkci, ale kód se stáhne jen s parametrem.
 
 Ve vývojovém režimu (`npm run dev`) je v konzoli `window.__kmScene` — dá se
 s ním krokovat čas, číst aktuální stav a umístění a přepočítat layout. Do
@@ -168,6 +191,7 @@ reveal.js    odhalení sekce: dekódování čísla, karty postupně, Hands-on j
 timeline.js  vzdělání: kolejnice časové osy kreslená scrollem
 magnet.js    odkazy v hlavičce a kontaktu se přitáhnou k myši (max 6 px)
 tilt.js      karty se natočí k myši (max 6°) s odleskem, který ji sleduje
+cursor.js    vlastní kurzor: tečka a kruh, které invertují, co je pod nimi
 ```
 
 Kdy je sekce odhalená, rozhoduje dál `app.js` (třída `.in`). Pohyb sekce

@@ -13,6 +13,11 @@ const NODE_SIZE = 0.22;
 const TIGHT = 0.3;
 const PING = 2.4;           // seconds per pulse of the ring around "me"
 const TURN = 3;             // how firmly `face` steers, 1/s
+/* the mouse: nodes within REACH of the ray under it lean towards it by PULL
+   of the distance and light up by GLOW */
+const REACH = 0.9;
+const PULL = 0.2;
+const GLOW = 1.8;
 
 const GOLDEN = Math.PI * (3 - Math.sqrt(5));
 const wrap = a => a - Math.PI * 2 * Math.floor((a + Math.PI) / (Math.PI * 2));
@@ -96,7 +101,8 @@ export function createGlobe({ R, colors, lite, glow, ring, clusters }) {
   const nodeGeo = new BufferGeometry();
   const posAttr = new BufferAttribute(pos, 3).setUsage(DynamicDrawUsage);
   nodeGeo.setAttribute('position', posAttr);
-  nodeGeo.setAttribute('color', new BufferAttribute(col, 3));
+  const colAttr = new BufferAttribute(col, 3).setUsage(DynamicDrawUsage);
+  nodeGeo.setAttribute('color', colAttr);
   const nodePoints = new Points(nodeGeo, new PointsMaterial({
     size: 0, map: glow, vertexColors: true, transparent: true, opacity: 0,
     blending: AdditiveBlending, depthWrite: false, sizeAttenuation: true
@@ -151,7 +157,7 @@ export function createGlobe({ R, colors, lite, glow, ring, clusters }) {
   let version = 0;
   let clustered = -1;
   function setCluster(c) {
-    if (Math.abs(c - clustered) < 1e-4) return;
+    if (Math.abs(c - clustered) < 1e-4) return false;
     clustered = c;
     nodes.forEach((v, i) => {
       v.copy(dirs[i]).lerp(gathered[i], c).normalize().multiplyScalar(R * 1.005).toArray(pos, i * 3);
@@ -160,8 +166,48 @@ export function createGlobe({ R, colors, lite, glow, ring, clusters }) {
     meGlow.position.copy(nodes[me]);
     mePing.position.copy(nodes[me]);
     version++;
+    return true;
   }
   setCluster(0);
+
+  /* Pull towards the mouse. Only what is drawn moves: `nodes`, which the arcs
+     hang from, stay where they are, so no arc tears loose. Each node eases
+     towards its pull and back, so the effect fades in and out, never snaps. */
+  const baseCol = col.slice();
+  const lit = new Float32Array(count);
+  const shift = new Float32Array(count * 3);
+  const _v = new Vector3(), _c = new Vector3();
+  let pulling = false;
+  function attract(probe, dt, moved) {
+    const active = probe && probe.s > 0.001;
+    if (!active && !pulling && !moved) return;
+    const k = 1 - Math.exp(-dt * 8);
+    pulling = false;
+    nodes.forEach((v, i) => {
+      let w = 0;
+      _c.set(0, 0, 0);
+      if (active) {
+        const t = _v.copy(v).sub(probe.o).dot(probe.d);
+        const d = _v.copy(probe.d).multiplyScalar(t).add(probe.o).distanceTo(v);
+        if (d < REACH) {
+          w = probe.s * (1 - d / REACH) * (1 - d / REACH);
+          _c.copy(_v).sub(v).multiplyScalar(PULL * w);       // towards the ray
+        }
+      }
+      lit[i] += (w - lit[i]) * k;
+      let still = lit[i] < 1e-4;
+      for (let a = 0; a < 3; a++) {
+        const j = i * 3 + a;
+        shift[j] += (_c.getComponent(a) - shift[j]) * k;
+        if (Math.abs(shift[j]) > 1e-4) still = false;
+        pos[j] = v.getComponent(a) + shift[j];
+        col[j] = baseCol[j] * (1 + GLOW * lit[i]);
+      }
+      if (!still) pulling = true;
+    });
+    posAttr.needsUpdate = true;
+    colAttr.needsUpdate = true;
+  }
 
   return {
     core,
@@ -175,8 +221,8 @@ export function createGlobe({ R, colors, lite, glow, ring, clusters }) {
        comes in explicitly (already corrected for the camera angle) */
     /* marker: { size: glow diameter in px, px: sprite scale per px at the
        globe's own scale } */
-    update({ time, dt, state, reveal, alpha, scale, auraBoost, marker }) {
-      setCluster(state.cluster);
+    update({ time, dt, state, reveal, alpha, scale, auraBoost, marker, probe }) {
+      attract(probe, dt, setCluster(state.cluster));
 
       core.rotation.y += dt * state.spin;
       /* Steering rather than setting: the spin keeps running and `face` pulls

@@ -1,11 +1,12 @@
 import { gsap } from 'gsap';
-import { fine } from './pointer.js';
+import { fine, settlePointer } from './pointer.js';
 import { createProgress } from './progress.js';
 import { createNavLine } from './navline.js';
 import { createReveals } from './reveal.js';
 import { createTimeline } from './timeline.js';
 import { createMagnets } from './magnet.js';
 import { createTilt } from './tilt.js';
+import { createCursor } from './cursor.js';
 
 /* Micro-animations in the sections. Loaded by the gate (src/scene/main.js)
    for everyone except prefers-reduced-motion, with or without WebGL; nothing
@@ -29,9 +30,11 @@ export function initMotion(scroll) {
   /* the mouse-driven parts only where there is a mouse */
   const magnets = fine ? createMagnets('header .mark, .secnav a, .lang, #contact .mailto, #contact .links a') : null;
   const tilt = fine ? createTilt('#work .row, #projects .row, #handson .spec li') : null;
+  const cursor = fine ? createCursor() : null;
 
   gsap.ticker.add((_, deltaMs) => {
     const dt = Math.min(deltaMs / 1000, 0.05);
+    if (fine) settlePointer(dt);
     progress.update();
     reveals.update(dt);
     if (magnets) {
@@ -39,6 +42,7 @@ export function initMotion(scroll) {
       navline?.follow(magnets.offsetOf(navline.active));
     }
     tilt?.update(dt);
+    cursor?.update(dt);
   });
 
   const relayout = () => { progress.resize(); navline?.place(); };

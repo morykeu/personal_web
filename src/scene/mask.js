@@ -42,12 +42,16 @@ export function createCopyMask() {
   `;
 
   return {
-    apply(material) {
+    /* premultiplied: the material writes colour already multiplied by its
+       alpha (the lens, which copies the finished frame), so the hole has to
+       take the colour away too, not only the alpha */
+    apply(material, premultiplied = false) {
+      const cut = premultiplied ? 'gl_FragColor *= kmHole();' : 'gl_FragColor.a *= kmHole();';
       material.onBeforeCompile = shader => {
         Object.assign(shader.uniforms, uniforms);
         const fs = shader.fragmentShader;
         const end = fs.lastIndexOf('}');
-        shader.fragmentShader = chunk + fs.slice(0, end) + '  gl_FragColor.a *= kmHole();\n}' + fs.slice(end + 1);
+        shader.fragmentShader = chunk + fs.slice(0, end) + `  ${cut}\n}` + fs.slice(end + 1);
       };
     },
     /* `page` in document px, moving with the scroll; `fixed` in viewport px.

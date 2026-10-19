@@ -8,6 +8,9 @@ const POOL = 42;              // enough for the busiest state (handson asks for 
 const SEG = 40;               // segments per arc
 const TRAIL = 0.35;           // trail length, as a share of the arc
 const PACKET_SIZE = 0.75;
+/* the mouse: a packet within REACH of the ray under it runs up to RUSH× faster */
+const REACH = 1.1;
+const RUSH = 1.8;
 
 /* Arcs between nodes, each carrying a packet with a glowing trail. All arcs
    live in one LineSegments and all packets in one Points, so the whole network
@@ -191,7 +194,8 @@ export function createNetwork({ R, globe, colors, lite, glow }) {
 
   return {
     group,
-    update({ dt, packets: wanted, speed, lift: nextLift, cluster, running, alpha, scale, pointScale }) {
+    update({ dt, packets: wanted, speed, lift: nextLift, cluster, running, alpha, scale, pointScale, probe }) {
+      const near = probe && probe.s > 0.001;
       arcMat.uniforms.uAlpha.value = alpha;
       pktMat.uniforms.uOpacity.value = alpha;
       pktMat.uniforms.uSize.value = PACKET_SIZE * scale;
@@ -211,7 +215,15 @@ export function createNetwork({ R, globe, colors, lite, glow }) {
           build(i);
           dirty = true;
         }
-        if (running) r.t += dt * r.speed * speed;
+        let rush = 1;
+        if (near && pktAlpha[i] > 0) {
+          /* last frame's position is close enough to judge by */
+          _p.fromArray(pktPos, i * 3).sub(probe.o);
+          const t = _p.dot(probe.d);
+          const d = _p.addScaledVector(probe.d, -t).length();
+          if (d < REACH) rush += RUSH * probe.s * (1 - d / REACH);
+        }
+        if (running) r.t += dt * r.speed * speed * rush;
         if (r.t > 1 + TRAIL) {
           if (i < want) route(i, 0.6, cluster);
           else { park(i); continue; }

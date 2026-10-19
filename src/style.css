@@ -265,6 +265,19 @@ section[tabindex="-1"]:focus{outline:none}
 }
 .has-motion .tl .item.lit::after{opacity:1;transform:none}
 
+/* Custom cursor (src/motion/cursor.js): a dot on the mouse and a disc that
+   follows it, both inverting what is under them. Shown only while .has-cursor
+   is on <html> — a mouse in the window — and the native cursor is hidden for
+   exactly that long. */
+.cursor-dot,.cursor-disc{
+  position:fixed;left:0;top:0;z-index:300;pointer-events:none;border-radius:50%;
+  background:#fff;mix-blend-mode:difference;opacity:0;transition:opacity .2s;
+}
+.cursor-dot{width:6px;height:6px;margin:-3px 0 0 -3px}
+.cursor-disc{width:28px;height:28px;margin:-14px 0 0 -14px}
+.has-cursor .cursor-dot,.has-cursor .cursor-disc{opacity:1}
+.has-cursor,.has-cursor *{cursor:none!important}
+
 /* ---------- loader ---------- */
 #loader{
   position:fixed;inset:0;z-index:100;background:var(--ink);

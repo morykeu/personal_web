@@ -1,4 +1,4 @@
-import { Color, Group, PerspectiveCamera, Scene, Vector2, Vector3, WebGLRenderer } from 'three';
+import { Color, Group, Matrix4, PerspectiveCamera, Raycaster, Scene, Vector2, Vector3, WebGLRenderer } from 'three';
 import { gsap } from 'gsap';
 import { glowTexture, ringTexture } from './glow.js';
 import { createGlobe } from './globe.js';
@@ -10,6 +10,8 @@ import { createStars } from './stars.js';
 import { createTrace } from './trace.js';
 import { heroPlacement } from './layout.js';
 import { createCopyMask } from './mask.js';
+import { createLens } from './lens.js';
+import { fine, pointer, flags } from '../motion/pointer.js';
 import { states, forTouch, ORDER, KEYS } from './states.js';
 
 const R = 3;                               // globe radius, world units
@@ -83,6 +85,8 @@ export async function initScene(scroll) {
   scene.add(stars.points);
   const mask = createCopyMask();
   scene.traverse(o => { if (o.material) mask.apply(o.material); });
+  /* the lens and the pull towards the mouse exist only with a mouse */
+  const lens = fine && !lite ? createLens({ renderer, mask, colors }) : null;
 
   /* --- states as vectors ------------------------------------------------- */
 
@@ -186,6 +190,22 @@ export async function initScene(scroll) {
   const origin = new Vector3();
   let trace = null;
 
+  /* The ray under the mouse, in the globe's own space, for the nodes and
+     packets that react to it; `s` eases in and out so they never snap. */
+  const probe = { o: new Vector3(), d: new Vector3(), s: 0 };
+  const raycaster = new Raycaster(), ndc = new Vector2(), inverse = new Matrix4();
+  function aimProbe(dt) {
+    const live = fine && !lite && flags.attract && revealedAt >= 0 && pointer.inside && pointer.mouse;
+    probe.s += ((live ? 1 : 0) - probe.s) * (1 - Math.exp(-dt * 5));
+    if (probe.s < 0.001) return;
+    camera.updateMatrixWorld();
+    ndc.set((pointer.x / W) * 2 - 1, -(pointer.y / H) * 2 + 1);
+    raycaster.setFromCamera(ndc, camera);
+    inverse.copy(globe.core.matrixWorld).invert();
+    probe.o.copy(raycaster.ray.origin).applyMatrix4(inverse);
+    probe.d.copy(raycaster.ray.direction).transformDirection(inverse);
+  }
+
   function step(dt) {
     time += dt;
     const reveal = revealedAt < 0 ? 0 : ease((time - revealedAt) / INTRO);
@@ -205,6 +225,7 @@ export async function initScene(scroll) {
     const pointScale = H * renderer.getPixelRatio() * 0.5 * fovK;
 
     world.updateMatrixWorld();
+    aimProbe(dt);
     origin.copy(globe.nodes[globe.me]).applyMatrix4(globe.core.matrixWorld);
     const flare = beacon.update({ dt, beacon: S.beacon, origin, camera, scale, reveal });
 
@@ -214,10 +235,10 @@ export async function initScene(scroll) {
       size: Math.min(Math.max(rpx * 0.16, 36), 90),
       px: (2 * Math.tan((S.fov * Math.PI) / 360)) / (H * scale)
     };
-    globe.update({ time, dt, state: S, reveal, alpha, scale: scale * fovK, auraBoost: flare, marker });
+    globe.update({ time, dt, state: S, reveal, alpha, scale: scale * fovK, auraBoost: flare, marker, probe });
     network.update({
       dt, packets: S.packets, speed: S.speed, lift: S.lift, cluster: S.cluster,
-      running: reveal > 0.6, alpha, scale, pointScale
+      running: reveal > 0.6, alpha, scale, pointScale, probe
     });
     /* the highlighted links stand out of a dimmed globe */
     links.update({ time, alpha: reveal * S.links * Math.min(1, S.bright * 1.6), scale: scale * fovK });
@@ -229,12 +250,14 @@ export async function initScene(scroll) {
     }
     mask.update({ page: hero.ink, fixed: [bar] }, window.scrollY, H, renderer.getPixelRatio());
     renderer.render(scene, camera);
+    if (lens && revealedAt >= 0 && lens.update(dt, H)) lens.render();
   }
 
   /* Watching the canvas box rather than window resize: the scrollbar appearing
      when the loader unlocks the page narrows the canvas by its width without
      firing a resize event, and the buffer would be left stretched. */
-  let resizeDirty = false, layoutDirty = false;
+  let resizeDirty = false, layoutDirty = false, cpu = 0;
+  const timing = { sync: false };
   new ResizeObserver(() => { resizeDirty = true; }).observe(canvas);
   window.addEventListener('km:lang', () => { layoutDirty = true; });   // copy length moves the free space
   document.fonts?.ready.then(() => { layoutDirty = true; });
@@ -248,7 +271,12 @@ export async function initScene(scroll) {
       if (resize()) { layoutDirty = true; snap = true; }
     }
     if (layoutDirty) { layoutDirty = false; fit(); }
+    const t0 = performance.now();
     step(Math.min(deltaMs / 1000, 0.05));
+    /* ?debug=1's A/B waits for the GPU too, or a fast machine would only
+       ever show the JavaScript side of the frame */
+    if (timing.sync) renderer.getContext().finish();
+    cpu += (performance.now() - t0 - cpu) * 0.05;
   }
 
   /* A lost context takes the scene down cleanly: the CSS background comes back
@@ -294,10 +322,12 @@ export async function initScene(scroll) {
       scroll: Math.round(scroll.y),
       jump: jump && jump.to,
       globe: `${Math.round(S.x * W)}, ${Math.round(S.y * H)}  ⌀${Math.round(S.size * Math.min(W, H))}px`,
-      mode: `${lite ? 'touch' : 'pointer'} · hero ${hero.mode} · fov ${S.fov.toFixed(0)}`
+      mode: `${lite ? 'touch' : 'pointer'} · hero ${hero.mode} · fov ${S.fov.toFixed(0)}`,
+      lens: lens ? lens.power.toFixed(2) : 'off (no mouse)',
+      cpu
     };
   };
-  if (debug) import('./debug.js').then(m => m.initDebug(read));
+  if (debug) import('./debug.js').then(m => m.initDebug(read, lens ? flags : null, timing));
 
   if (import.meta.env.DEV) {
     /* dev-only handle for stepping and inspecting frames; compiled out of the
