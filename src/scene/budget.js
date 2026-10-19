@@ -21,13 +21,16 @@ import { CanvasTexture, LinearFilter } from 'three';
    frame only for what is moving: a section or card still sliding in. */
 
 const SCALE = 4;               // CSS px per budget pixel
-/* Around each line: the magnet's pull, a card's tilt, and the blur below.
-   The blur softens the dimmed area into something like the old scrim halo
-   instead of a hard box, but it also lifts the limit near the edge — at the
-   edge it is halfway back to "anything goes" — so the padding puts the text
-   a good four sigmas inside. */
-const PAD = 24;
-const BLUR = 1.4;              // budget px (σ), so ≈ 5.6 CSS px
+/* Around each line the full limit holds for PAD px (the magnet's pull, a
+   card's tilt), then eases off over three more steps, so the dimmed area ends
+   in a soft halo like the old scrims rather than a hard box. Concentric
+   rectangles rather than a canvas blur filter: WebKit has no ctx.filter and
+   drew hard boxes, and stepping outwards never lifts the limit over the text
+   itself, where a blur did. */
+const PAD = 12;
+/* [further out, px; × the limit] — multiples of the luminance itself, so a
+   strict limit (muted copy) eases off as gently as a lax one */
+const RAMP = [[5, 1.6], [10, 2.8], [15, 5], [20, 9], [25, 16]];
 const RATIO = 4.7;             // the target, a little above 4.5
 /* A tilting card lays a violet sheen and its hover tint over whatever the
    canvas shows (style.css), which lifts the background by more the brighter
@@ -167,20 +170,23 @@ export function createBudget() {
         texture.dispose();      // a new size needs a new GPU texture
       }
       ctx.globalCompositeOperation = 'source-over';
-      ctx.filter = 'none';
       ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, w, h);
+      /* "darken" keeps the stricter value wherever two shapes overlap, so the
+         order the rings are drawn in does not matter */
       ctx.globalCompositeOperation = 'darken';
-      ctx.filter = `blur(${BLUR}px)`;
-      const pad = PAD + Math.min(dy, 60);   // a frame of scroll lag
+      const pad = PAD + Math.min(dy, 60);   // plus a frame of scroll lag
+      const reach = pad + RAMP[RAMP.length - 1][0];
       for (const run of runs) {
         const off = run.fixed ? 0 : sy;
-        const v = Math.round(Math.sqrt(run.lmax) * 255);
-        ctx.fillStyle = `rgb(${v},${v},${v})`;
         for (const r of run.rects) {
           const t = r.t - off, b = r.b - off;
-          if (b < -pad || t > H + pad) continue;
-          ctx.fillRect((r.l - pad) * kx, (t - pad) * ky, (r.r - r.l + 2 * pad) * kx, (b - t + 2 * pad) * ky);
+          if (b < -reach || t > H + reach) continue;
+          for (const [extra, times] of [[0, 1], ...RAMP]) {
+            const g = Math.round(Math.sqrt(Math.min(run.lmax * times, 1)) * 255), p = pad + extra;
+            ctx.fillStyle = `rgb(${g},${g},${g})`;
+            ctx.fillRect((r.l - p) * kx, (t - p) * ky, (r.r - r.l + 2 * p) * kx, (b - t + 2 * p) * ky);
+          }
         }
       }
       texture.needsUpdate = true;

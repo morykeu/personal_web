@@ -29,12 +29,20 @@ function hasWebGL2() {
   }
 }
 
+/* Two frames: the first runs just before the browser's first paint, the
+   second just after it. */
+const afterFirstPaint = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
 async function start() {
   const root = document.documentElement;
-  /* both requests leave together rather than one after the other */
+  /* scroll and motion are small and leave together straight away */
   const scrollReady = import('./scroll.js');
   const motionReady = import('../motion/index.js');
-  const sceneReady = !saveData && hasWebGL2() ? import('./scene.js') : null;
+  /* Three.js is by far the largest download on the page, so it waits until
+     the page has painted once: it used to leave at ~140 ms and share the
+     line with the fonts while the headline was still unpainted (~315 ms).
+     The loader covers the gap; the shaders still compile under it. */
+  const sceneReady = !saveData ? afterFirstPaint().then(() => (hasWebGL2() ? import('./scene.js') : null)) : null;
 
   /* The loader (app.js) holds at 100 % while this class is on, so the shaders
      compile under it — but for 1.2 s at most; a slow scene fades in after the
@@ -59,8 +67,9 @@ async function start() {
   if (!sceneReady) return;
 
   try {
-    const { initScene } = await sceneReady;
-    await initScene(scroll);
+    const mod = await sceneReady;
+    if (!mod) return;                    // no WebGL2 after all
+    await mod.initScene(scroll);
   } catch (err) {
     /* the CSS background is still in place and nothing depends on the scene */
     document.querySelector('canvas.scene')?.remove();

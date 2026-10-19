@@ -43,6 +43,6 @@ export function initMotion(scroll) {
 
   const relayout = () => { progress.resize(); navline?.place(); };
   new ResizeObserver(relayout).observe(document.body);
-  window.addEventListener('km:lang', () => { reveals.settle(); relayout(); });
+  window.addEventListener('km:lang', () => { reveals.settle(); requestAnimationFrame(relayout); });
   document.fonts?.ready.then(relayout);
 }

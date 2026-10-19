@@ -122,7 +122,7 @@
 
 <div class="wrap">
 <header>
-  <a class="mark" href="#hero" aria-label="Back to top" data-cs-aria="Zpět nahoru" data-en-aria="Back to top">KM<b>.</b></a>
+  <a class="mark" href="#hero" aria-label="KM, back to top" data-cs-aria="KM, zpět nahoru" data-en-aria="KM, back to top">KM<b>.</b></a>
 
   <!-- Názvy sekcí jsou v souboru třikrát: v nadpisu sekce, ve viditelném
        popisku navigace a v jejím aria-label. Je to vědomé rozhodnutí, ne
@@ -132,18 +132,22 @@
 
        Vlastní aria-label má každý odkaz proto, že pod 1200 px se viditelný
        popisek skrývá a číslo vedle něj je aria-hidden — jinak by jméno
-       odkazu záviselo na šířce okna.
+       odkazu záviselo na šířce okna. Číslo v něm je proto, že jméno musí
+       obsahovat to, co je vidět (WCAG 2.5.3) — kdo ovládá web hlasem, řekne
+       „01 About“. Ze stejného důvodu má značka KM. v aria-label i „KM“.
+       Mezera mezi číslem a popiskem se ve flexu nevykreslí, ale nástroje,
+       které skládají viditelný text, by bez ní četly „01About“.
 
        Položka 03 má v navigaci záměrně kratší název než nadpis sekce:
        "Sáhl jsem si na" dokončuje až seznam pod ním a jako samostatná
        nálepka nedrží. -->
   <nav class="secnav" aria-label="Sections" data-cs-aria="Sekce" data-en-aria="Sections">
-    <a href="#about" aria-label="About" data-cs-aria="O mně" data-en-aria="About"><span aria-hidden="true">01</span><span class="lbl" data-cs="O mně" data-en="About">About</span></a>
-    <a href="#work" aria-label="What I work on" data-cs-aria="Čemu se věnuju" data-en-aria="What I work on"><span aria-hidden="true">02</span><span class="lbl" data-cs="Čemu se věnuju" data-en="What I work on">What I work on</span></a>
-    <a href="#handson" aria-label="Hands-on" data-cs-aria="Praxe" data-en-aria="Hands-on"><span aria-hidden="true">03</span><span class="lbl" data-cs="Praxe" data-en="Hands-on">Hands-on</span></a>
-    <a href="#education" aria-label="Education and credentials" data-cs-aria="Vzdělání a kvalifikace" data-en-aria="Education and credentials"><span aria-hidden="true">04</span><span class="lbl" data-cs="Vzdělání a kvalifikace" data-en="Education and credentials">Education and credentials</span></a>
-    <a href="#projects" aria-label="Projects" data-cs-aria="Projekty" data-en-aria="Projects"><span aria-hidden="true">05</span><span class="lbl" data-cs="Projekty" data-en="Projects">Projects</span></a>
-    <a href="#contact" aria-label="Contact" data-cs-aria="Kontakt" data-en-aria="Contact"><span aria-hidden="true">06</span><span class="lbl" data-cs="Kontakt" data-en="Contact">Contact</span></a>
+    <a href="#about" aria-label="01 About" data-cs-aria="01 O mně" data-en-aria="01 About"><span aria-hidden="true">01</span> <span class="lbl" data-cs="O mně" data-en="About">About</span></a>
+    <a href="#work" aria-label="02 What I work on" data-cs-aria="02 Čemu se věnuju" data-en-aria="02 What I work on"><span aria-hidden="true">02</span> <span class="lbl" data-cs="Čemu se věnuju" data-en="What I work on">What I work on</span></a>
+    <a href="#handson" aria-label="03 Hands-on" data-cs-aria="03 Praxe" data-en-aria="03 Hands-on"><span aria-hidden="true">03</span> <span class="lbl" data-cs="Praxe" data-en="Hands-on">Hands-on</span></a>
+    <a href="#education" aria-label="04 Education and credentials" data-cs-aria="04 Vzdělání a kvalifikace" data-en-aria="04 Education and credentials"><span aria-hidden="true">04</span> <span class="lbl" data-cs="Vzdělání a kvalifikace" data-en="Education and credentials">Education and credentials</span></a>
+    <a href="#projects" aria-label="05 Projects" data-cs-aria="05 Projekty" data-en-aria="05 Projects"><span aria-hidden="true">05</span> <span class="lbl" data-cs="Projekty" data-en="Projects">Projects</span></a>
+    <a href="#contact" aria-label="06 Contact" data-cs-aria="06 Kontakt" data-en-aria="06 Contact"><span aria-hidden="true">06</span> <span class="lbl" data-cs="Kontakt" data-en="Contact">Contact</span></a>
   </nav>
 
   <div class="lang" role="group" aria-label="Language selection" data-cs-aria="Volba jazyka" data-en-aria="Language selection">

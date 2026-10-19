@@ -29,7 +29,7 @@ který prohlížeč nespouští.
 
 ```
 index.html            obsah stránky, meta tagy, JSON-LD, favicon jako inline SVG
-vercel.json           build pro Vercel, bezpečnostní hlavičky, cache pro fonty
+vercel.json           build pro Vercel, bezpečnostní hlavičky, cache pro fonty a assety
 package.json          závislosti a skripty (dev / build / preview)
 src/style.css         veškeré styly včetně @font-face
 src/app.js            přepínač jazyka, úvodní loader, odhalování sekcí, navigace
@@ -91,7 +91,8 @@ debug.js    přehled pro ?debug=1
 | ostatní | plynulý scroll, mikroanimace i scéna |
 
 Three.js je za dynamickým importem, takže si ho první dva řádky tabulky
-vůbec nestáhnou. Když scéna běží, má `<html>` třídu `.has-scene` — podle ní
+vůbec nestáhnou. Ostatním se začne stahovat až po prvním vykreslení
+stránky (dva `requestAnimationFrame`), takže nadpis na scénu nikdy nečeká. Když scéna běží, má `<html>` třídu `.has-scene` — podle ní
 se schovají glow divy a za text se přidá tmavá clona, která drží kontrast
 nad 4,5 : 1.
 
@@ -169,7 +170,9 @@ a aditivní záře scény by pak vypadaly jinak.)
 **Kontrast.** Aby byla kapka vidět i pod textem, nahradí s myší CSS clony
 (`.has-lens`) *rozpočet kontrastu* (`src/scene/budget.js`): pro každý řádek
 textu se z jeho skutečné barvy spočítá, jak jasné smí být pozadí, aby
-zůstalo 4,7 : 1, a ten limit se nakreslí do malé textury. Stejný průchod
+zůstalo 4,7 : 1, a ten limit se nakreslí do malé textury. Měkký okraj
+kolem řádku tvoří soustředné obdélníky v násobcích limitu — ne
+`ctx.filter: blur()`, ten Safari neumí. Stejný průchod
 pak pod textem udělá canvas neprůhledný (zakryje i CSS mřížku) a ořízne jas
 — scény i kapky — přesně na limit. Šedý text tak snese skoro jen tmu,
 bílý nadpis mnohem víc. Odkaz pod myší, který mění barvu, se přepočítává
@@ -284,7 +287,10 @@ Vercelu naklikané:
 
 `vercel.json` nastavuje bezpečnostní hlavičky (`Content-Security-Policy`,
 `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
-`Permissions-Policy`) a roční cache pro fonty.
+`Permissions-Policy`) a roční `immutable` cache pro fonty a pro JS a CSS
+v `/assets/`. Ty mají v názvu hash obsahu, takže nová verze má vždy novou
+adresu a stará cache nevadí. `index.html` se cachuje výchozím způsobem
+Vercelu (pokaždé se ověří).
 
 CSP má u `style-src` hodnotu `'unsafe-inline'`. Není to nedbalost — stránka
 má inline `style="animation-delay:…"` přímo na prvcích SVG a `<noscript>`
@@ -325,6 +331,8 @@ Stránka cílí na WCAG 2.1 AA:
 - všechny interaktivní prvky mají viditelný `:focus-visible` rámeček
 - nadpisy jdou v pořadí `h1` → `h2` → `h3`, bez přeskakování úrovní
 - orientační body `banner` / `main` / `contentinfo` a pojmenované sekce
+- odkazy s vlastním `aria-label` (navigace, značka KM.) mají v něm i to, co
+  je vidět — kdo ovládá web hlasem, řekne „01 About“ (WCAG 2.5.3)
 - respektuje `prefers-reduced-motion` — animace se vypnou
 - bez JavaScriptu se úvodní loader přeskočí a obsah zůstane čitelný
 

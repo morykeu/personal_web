@@ -538,7 +538,10 @@ footer{
   /* same selector as the rule it overrides — a bare html{} here would lose to
      html:not(.lenis) on specificity and leave smooth scrolling on */
   html:not(.lenis){scroll-behavior:auto}
-  *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+  /* One run each, too: the status dot's pulse loops forever, and a looping
+     animation squeezed into .001ms lands on a random point of the loop every
+     frame — its ring flickered instead of standing still. */
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
   .path{stroke-dashoffset:0}
   .node,.hoplbl,.hopms{opacity:.9}
   .rv{opacity:1;transform:none}

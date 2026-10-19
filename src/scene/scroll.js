@@ -77,8 +77,10 @@ export function initScroll() {
   }
 
   /* copy changes length with the language, and webfonts change metrics once
-     they land — both move every trigger */
-  window.addEventListener('km:lang', () => ScrollTrigger.refresh());
+     they land — both move every trigger. After a language switch the
+     refresh waits a frame: it measures every trigger at once, and inside the
+     click it held the next paint back (measured: ~100 ms on the CS button). */
+  window.addEventListener('km:lang', () => requestAnimationFrame(() => ScrollTrigger.refresh()));
   document.fonts?.ready.then(() => ScrollTrigger.refresh());
 
   return {
