@@ -144,7 +144,10 @@ section[tabindex="-1"]:focus{outline:none}
 .has-scene.scene-behind #hero h1{
   position:relative;
 }
-.has-scene :is(#hero .status,#hero .lede,#hero .hops,.eyebrow>span,.about p,.row h3,.row p,.row .repo,.spec li,.note,.tl .yr,.tl .body>*,.mailto,.links>*,footer>span)::before,
+/* The hands-on items draw their dash with ::before (below), so theirs is
+   the ::after — same layer, the dash stays. */
+.has-scene :is(#hero .status,#hero .lede,#hero .hops,.eyebrow>span,.about p,.row h3,.row p,.row .repo,.note,.tl .yr,.tl .body>*,.mailto,.links>*,footer>span)::before,
+.has-scene .spec li::after,
 .has-scene.scene-behind #hero h1::before{
   content:"";position:absolute;inset:-6px -10px;z-index:-1;pointer-events:none;
   border-radius:20px;background:var(--scrim);box-shadow:0 0 30px 18px var(--scrim);
