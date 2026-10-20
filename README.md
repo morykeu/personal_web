@@ -37,6 +37,8 @@ src/scene/            volitelná 3D scéna a plynulý scroll (viz níž)
 src/motion/           mikroanimace v sekcích (viz níž)
 public/assets/fonts/  Space Grotesk a JetBrains Mono (woff2)
 public/assets/img/    náhledový obrázek pro sdílení
+public/robots.txt     pro vyhledávače, odkazuje na sitemapu
+public/sitemap.xml    jediná adresa webu
 ```
 
 `src/` Vite zpracuje a výsledné soubory pojmenuje hashem. `public/` kopíruje
@@ -234,6 +236,14 @@ hodnota. Proto také stačí čtyři soubory místo deseti.
 Rozdělení na `latin` a `latin-ext` přes `unicode-range` znamená, že soubor
 s diakritikou se stáhne jen tehdy, když ho stránka potřebuje.
 
+Než fonty dorazí, kreslí se text záložním písmem (`font-display: swap`).
+Aby výměna nepohnula řádky, jsou ve stacku hned za nimi plochy
+`Space Grotesk Fallback` a `JetBrains Mono Fallback`: Arial a Courier New
+zvětšené na šířku webového fontu (`size-adjust`, změřeno na textu stránky
+v obou jazycích) a s jeho výškou nad a pod účařím (`ascent-override`,
+`descent-override`). Při změně fontu nebo velké změně textu je dobré poměry
+přeměřit — postup je v komentáři v `src/style.css`.
+
 Oba fonty jsou pod SIL Open Font License 1.1.
 
 ## Spuštění lokálně
@@ -303,9 +313,10 @@ jako „Refused to load…".
 
 ### Při změně domény
 
-`<link rel="canonical">` a `og:url` v `<head>` obsahují produkční adresu
-natvrdo. Při přechodu na vlastní doménu je potřeba přepsat obě — a vždy
-jako **absolutní** adresu včetně `https://` a koncového lomítka. Bez schématu
+`<link rel="canonical">` a `og:url` v `<head>`, `public/sitemap.xml`
+a řádek `Sitemap:` v `public/robots.txt` obsahují produkční adresu natvrdo.
+Při přechodu na vlastní doménu je potřeba přepsat všechny čtyři najednou —
+a vždy jako **absolutní** adresu včetně `https://` a koncového lomítka. Bez schématu
 si prohlížeč i vyhledávače hodnotu vyloží jako relativní cestu.
 
 ### Náhledový obrázek
@@ -333,6 +344,8 @@ Stránka cílí na WCAG 2.1 AA:
 - orientační body `banner` / `main` / `contentinfo` a pojmenované sekce
 - odkazy s vlastním `aria-label` (navigace, značka KM.) mají v něm i to, co
   je vidět — kdo ovládá web hlasem, řekne „01 About“ (WCAG 2.5.3)
+- první zastávka tabulátoru je odkaz „Skip to content“ / „Přeskočit na obsah“,
+  vidět jen při fokusu; přeskočí hlavičku rovnou na `<main>`
 - respektuje `prefers-reduced-motion` — animace se vypnou
 - bez JavaScriptu se úvodní loader přeskočí a obsah zůstane čitelný
 

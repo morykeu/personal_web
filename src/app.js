@@ -132,18 +132,22 @@
       if (el) watched.push(el);
     });
 
-    var onScreen = {};
+    var onScreen = {}, atEnd = false;
+    function light(id){
+      var href = "#" + id;
+      /* "location" rather than "true": this is the current place within one
+         page, not the current page out of several */
+      navLinks.forEach(function(a){
+        if (a.getAttribute("href") === href) a.setAttribute("aria-current", "location");
+        else a.removeAttribute("aria-current");
+      });
+    }
     function markActive(){
+      /* scrolled to the very end: the last section is too short to ever
+         reach the band, so it would stay on the one before it */
+      if (atEnd) return light(watched[watched.length - 1].id);
       for (var i = 0; i < watched.length; i++){
-        if (!onScreen[watched[i].id]) continue;
-        var href = "#" + watched[i].id;
-        /* "location" rather than "true": this is the current place within one
-           page, not the current page out of several */
-        navLinks.forEach(function(a){
-          if (a.getAttribute("href") === href) a.setAttribute("aria-current", "location");
-          else a.removeAttribute("aria-current");
-        });
-        return;
+        if (onScreen[watched[i].id]) return light(watched[i].id);
       }
       /* nothing on the band — happens past the last section, where leaving the
          previous item lit is the right answer */
@@ -158,5 +162,19 @@
       markActive();
     }, {rootMargin:"-20% 0px -79% 0px"});
     watched.forEach(function(el){ navIo.observe(el); });
+
+    /* The footer is the last box on the page, so all of it on screen means
+       the page cannot scroll any further. The root reaches 4px below the
+       window to absorb sub-pixel rounding at the bottom. */
+    var footer = document.querySelector("footer");
+    if (footer){
+      new IntersectionObserver(function(entries){
+        var e = entries[entries.length - 1];
+        var end = e.intersectionRatio >= 0.99;
+        if (end === atEnd) return;
+        atEnd = end;
+        markActive();
+      }, {threshold:[0, 0.99], rootMargin:"0px 0px 4px 0px"}).observe(footer);
+    }
   }
 })();

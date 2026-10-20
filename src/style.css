@@ -51,6 +51,42 @@
   unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/* Záložní fonty se stejnými rozměry. Než fonty výše dorazí, kreslí se text
+   Arialem a Courier New (font-display:swap) — a ty jsou jinak široké a jinak
+   vysoké, takže se po výměně řádky přelámaly jinak a nadpis poskočil (CLS).
+   Tyhle plochy je zvětší na šířku webového fontu (size-adjust) a dají jim
+   jeho výšku nad a pod účařím (ascent/descent-override).
+
+   size-adjust je poměr šířek změřený na textu této stránky, česky i anglicky:
+   Space Grotesk je proti Arialu o 7,6 % širší v řezu 400, o 6,4 % v 500
+   a o 2,35 % v tučném nadpisu (proti Arial Bold). JetBrains Mono má s Courier
+   New stejnou šířku znaku (0,6 em). Výšky jsou z tabulek fontů (Space Grotesk
+   984/292, JetBrains Mono 1020/300 na 1000 jednotek) vydělené size-adjust,
+   protože ho prohlížeč na overrides aplikuje také.
+
+   Arial a Courier New jsou na Windows, macOS i iOS. Kde nejsou (Android),
+   local() nic nenajde, plocha se přeskočí a platí zbytek stacku jako dřív. */
+@font-face{
+  font-family:'Space Grotesk Fallback';font-weight:400;
+  src:local('Arial'),local('ArialMT');
+  size-adjust:107.6%;ascent-override:91.45%;descent-override:27.14%;line-gap-override:0%;
+}
+@font-face{
+  font-family:'Space Grotesk Fallback';font-weight:500;
+  src:local('Arial'),local('ArialMT');
+  size-adjust:106.4%;ascent-override:92.48%;descent-override:27.44%;line-gap-override:0%;
+}
+@font-face{
+  font-family:'Space Grotesk Fallback';font-weight:700;
+  src:local('Arial Bold'),local('Arial-BoldMT');
+  size-adjust:102.35%;ascent-override:96.14%;descent-override:28.53%;line-gap-override:0%;
+}
+@font-face{
+  font-family:'JetBrains Mono Fallback';font-weight:400 500;
+  src:local('Courier New'),local('CourierNewPSMT');
+  size-adjust:100%;ascent-override:102%;descent-override:30%;line-gap-override:0%;
+}
+
 :root{
   --ink:#05050a;
   --ink2:#0a0912;
@@ -59,8 +95,8 @@
   --text:#ece9f6;
   --muted:#8a83a6;
   --line:rgba(167,139,250,.13);
-  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-  --disp:"Space Grotesk",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono","JetBrains Mono Fallback",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --disp:"Space Grotesk","Space Grotesk Fallback",system-ui,-apple-system,sans-serif;
   --pad:clamp(20px,5vw,88px);
   /* Height of the fixed header: 22px padding, the 28px language switcher,
      22px padding. The section nav is shorter than the switcher, so adding it
@@ -128,15 +164,16 @@ body::before{
    copy. The timeline's title is a block, so it is shrunk to its words. Every
    one of these is either inline-level, capped in ch, or a grid cell.
 
-   The hero headline is left out while the globe sits beside it: its 17ch box
+   The hero headline is left out while the globe sits beside it: its 17-character box
    runs well past its last letter, and a scrim on that box would black out the
    very space the globe uses. Instead the scene itself is cut away under each
    line of the headline (src/scene/mask.js). .scene-behind (set by scene.js) is
    the mode where the globe is under the copy instead, and then the headline
    gets a scrim too. */
-/* scroll.js focuses a section after an anchor jump so the next Tab starts
-   there, as a native jump would; the section itself is not a control */
-section[tabindex="-1"]:focus{outline:none}
+/* scroll.js focuses a section (or <main>, from the skip link) after an
+   anchor jump so the next Tab starts there, as a native jump would; the
+   target itself is not a control */
+:is(main,section)[tabindex="-1"]:focus{outline:none}
 
 .has-scene .tl .body>strong{width:fit-content}
 
@@ -304,6 +341,18 @@ header{
   background:color-mix(in srgb,var(--ink) 70%,transparent);
   -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
 }
+/* Skip link: parked above the window until it takes focus. Above the header
+   and the loader, on its own solid ground — the scene behind it never shows
+   through, so its contrast does not depend on what is drawn there. No
+   transition: it is there the moment it is focused. */
+.skip{
+  position:fixed;top:12px;left:var(--pad);z-index:150;
+  font-family:var(--mono);font-size:11px;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--text);background:var(--ink);border:1px solid var(--violet);
+  padding:10px 14px;text-decoration:none;
+  transform:translateY(calc(-100% - 24px));
+}
+.skip:focus{transform:none}
 header .mark{color:var(--violet);text-decoration:none}
 header .mark b{color:var(--magenta);font-weight:500}
 
@@ -377,12 +426,18 @@ section{padding:clamp(90px,13vh,150px) var(--pad);max-width:1400px;margin:0 auto
 }
 .status i{width:6px;height:6px;border-radius:50%;background:var(--magenta);box-shadow:0 0 0 0 rgba(232,121,249,.6);animation:pulse 2.4s infinite}
 @keyframes pulse{70%{box-shadow:0 0 0 9px rgba(232,121,249,0)}100%{box-shadow:0 0 0 0 rgba(232,121,249,0)}}
+/* Text widths are capped in em, not ch. A ch is the "0" of whatever font
+   is drawing at the moment, so before the web font arrived the fallback's
+   narrower "0" shrank every box by a tenth and the lines broke differently
+   (the headline grew a line and dropped back: layout shift). Each value is
+   the old ch count times Space Grotesk's "0" — .648em at 700, .641em at
+   400 — so with the web font in place nothing moves by even a pixel. */
 h1{
   font-size:clamp(2.4rem,6.4vw,5.6rem);font-weight:700;line-height:1.02;
-  letter-spacing:-.035em;margin:0 0 30px;max-width:17ch;
+  letter-spacing:-.035em;margin:0 0 30px;max-width:11.016em;   /* 17ch */
 }
 h1 em{font-style:normal;color:var(--violet)}
-.lede{font-size:clamp(1rem,1.5vw,1.24rem);line-height:1.62;color:var(--muted);max-width:56ch;margin:0}
+.lede{font-size:clamp(1rem,1.5vw,1.24rem);line-height:1.62;color:var(--muted);max-width:35.896em;margin:0}   /* 56ch */
 
 /* ---------- traceroute signature ---------- */
 .hops{margin-top:clamp(44px,7vh,84px)}
@@ -445,9 +500,9 @@ h1 em{font-style:normal;color:var(--violet)}
 /* ---------- about ---------- */
 .about p{
   font-size:clamp(1.15rem,2.2vw,1.9rem);line-height:1.48;letter-spacing:-.015em;
-  max-width:30ch;margin:0 0 1.1em;
+  max-width:19.23em;margin:0 0 1.1em;   /* 30ch, see h1 */
 }
-.about p:last-child{color:var(--muted);font-size:clamp(.98rem,1.4vw,1.14rem);line-height:1.66;max-width:52ch}
+.about p:last-child{color:var(--muted);font-size:clamp(.98rem,1.4vw,1.14rem);line-height:1.66;max-width:33.332em}   /* 52ch */
 
 /* ---------- capabilities ---------- */
 .rows{border-top:1px solid var(--line)}
@@ -461,7 +516,7 @@ h1 em{font-style:normal;color:var(--violet)}
   font-family:var(--mono);font-weight:500;font-size:clamp(.95rem,1.5vw,1.18rem);
   letter-spacing:.16em;text-transform:uppercase;color:var(--violet);margin:0;
 }
-.row p{margin:0;color:var(--muted);line-height:1.66;font-size:clamp(.95rem,1.2vw,1.06rem);max-width:58ch}
+.row p{margin:0;color:var(--muted);line-height:1.66;font-size:clamp(.95rem,1.2vw,1.06rem);max-width:37.178em}   /* 58ch */
 
 /* ---------- projects ---------- */
 /* Built on .rows / .row above — grid, dividers and hover tint all carry over,
@@ -497,7 +552,7 @@ h1 em{font-style:normal;color:var(--violet)}
   display:flex;align-items:baseline;gap:14px;
 }
 .spec li::before{content:"—";color:var(--magenta);flex:none}
-.note{margin:26px 0 0;color:var(--muted);font-size:.95rem;line-height:1.66;max-width:54ch}
+.note{margin:26px 0 0;color:var(--muted);font-size:.95rem;line-height:1.66;max-width:34.614em}   /* 54ch */
 
 /* ---------- timeline ---------- */
 .tl{display:grid;gap:0}
