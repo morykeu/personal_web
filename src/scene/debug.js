@@ -7,12 +7,12 @@ import { gsap } from 'gsap';
    Performance, for finding what slows a browser down (Safari's scrolling was
    the reason): the pixel ratio — automatic (quality.js) or fixed at 1, 1.25 or
    1.5 — and switches for the header's backdrop blur, Lenis' smooth wheel and
-   the lens' full-screen pass. The header switch only works with a fixed
-   pixel ratio; in automatic mode it shows what quality.js chose. The frame
-   line is measured here, from requestAnimationFrame, over the last second:
-   average interval, frame rate, the worst frame and the share of frames over
-   20 ms. A browser that caps animation at 30 fps (Safari in Low Power Mode)
-   shows as a steady ~33 ms whatever is switched off. "measure 5 s" takes the
+   the lens' full-screen pass. The header and Lenis switches only work with
+   a fixed pixel ratio; in automatic mode they show what quality.js chose —
+   including native scrolling under a 30 fps cap, which the quality line
+   names. The frame line is measured here, from requestAnimationFrame, over
+   the last second: average interval, frame rate, the worst frame and the
+   share of frames over 20 ms. "measure 5 s" takes the
    same numbers over five seconds — scroll while it runs — and keeps the last
    runs, each with the settings it was taken with, so they can be compared.
 
@@ -209,21 +209,20 @@ export function initDebug({ read, timing, quality, scroll, lens }) {
     const avg = ms.reduce((a, b) => a + b, 0) / ms.length;
     const worst = Math.max(...ms);
     const slow = ms.filter(v => v > SLOW).length / ms.length;
-    const sorted = [...ms].sort((a, b) => a - b);
-    const median = sorted[sorted.length >> 1];
-    const capped = median > 31 && median < 36 && sorted[Math.floor(sorted.length * 0.1)] > 30;
-    return `${avg.toFixed(1)} ms · ${(1000 / avg).toFixed(0)} fps · worst ${worst.toFixed(0)} · slow ${(slow * 100).toFixed(0)} %` +
-      (capped ? '\n          capped at 30 fps? (Low Power Mode)' : '');
+    return `${avg.toFixed(1)} ms · ${(1000 / avg).toFixed(0)} fps · worst ${worst.toFixed(0)} · slow ${(slow * 100).toFixed(0)} %`;
   }
 
   function qualityLine() {
     const q = quality.status;
     blur.input.checked = !q.solid;
     blur.input.disabled = q.auto;
+    smooth.input.checked = scroll.smooth;
+    smooth.input.disabled = q.auto;
     const head = q.auto ? `auto ${q.level}/${q.levels - 1}` : 'fixed';
     const up = q.up === null ? '' : ` · up in ${(q.up / 1000).toFixed(0)} s`;
     const tries = q.auto && q.failed ? ` · failed tries ${q.failed}` : '';
-    return `${head} · dpr ${q.dpr} · header ${q.solid ? 'solid' : 'blur'}${up}${tries}`;
+    const cap = q.capped ? `\n          capped at 30 fps${q.auto ? ' → native scroll' : ''}` : '';
+    return `${head} · dpr ${q.dpr} · header ${q.solid ? 'solid' : 'blur'}${up}${tries}${cap}`;
   }
 
   let since = performance.now();

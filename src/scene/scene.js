@@ -69,24 +69,23 @@ function lensColors() {
   };
 }
 
-export async function initScene(scroll) {
+/* `canvas` and `gl` come from the gate (main.js), which created the context
+   to find out whether there is a GPU for it at all — with the attributes the
+   renderer needs, so that one is used rather than a second one made here. */
+export async function initScene(scroll, { canvas, gl }) {
   const root = document.documentElement;
   const lite = matchMedia('(pointer: coarse)').matches;
   const parallax = matchMedia('(pointer: fine)').matches;
 
-  const canvas = document.createElement('canvas');
   canvas.className = 'scene';
   canvas.setAttribute('aria-hidden', 'true');
   document.body.prepend(canvas);
 
-  /* failIfMajorPerformanceCaveat: no context at all rather than one drawn in
-     software (no GPU, or the GPU blocklisted) — the gate in main.js asks the
-     same, so such a browser never gets this far and keeps the CSS background. */
-  const renderer = new WebGLRenderer({ canvas, alpha: true, antialias: true, failIfMajorPerformanceCaveat: true });
+  const renderer = new WebGLRenderer({ canvas, context: gl });
   renderer.setClearColor(0x000000, 0);
   const cap = Math.min(window.devicePixelRatio || 1, lite ? 1 : 1.5);
   renderer.setPixelRatio(cap);
-  const quality = createQuality({ renderer, cap, root });
+  const quality = createQuality({ renderer, cap, root, scroll });
 
   const scene = new Scene();
   const camera = new PerspectiveCamera(BASE_FOV, 1, 0.1, 200);
@@ -303,7 +302,7 @@ export async function initScene(scroll) {
   function tick(_, deltaMs) {
     if (document.hidden) return;
     /* the A/B below waits for the GPU on purpose; those frames say nothing */
-    if (!timing.sync) quality.frame(deltaMs);
+    if (!timing.sync) quality.frame(deltaMs, cpu);
     if (resizeDirty) {
       resizeDirty = false;
       /* a resize jumps straight to the new placement — easing it would

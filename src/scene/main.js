@@ -16,21 +16,30 @@
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const saveData = Boolean(navigator.connection && navigator.connection.saveData);
 
-/* three r186 is WebGL2-only, so WebGL1 support would not help. The probe
-   context is released straight away rather than left for the GC.
+/* The probe is the scene's own context. three r186 is WebGL2-only, so WebGL1
+   would not help, and failIfMajorPerformanceCaveat turns away a context the
+   browser would draw in software — no GPU, hardware acceleration switched
+   off, a blocklisted driver. The scene would run there, but in stutters, and
+   the CSS background is the better page.
 
-   failIfMajorPerformanceCaveat turns away a context the browser would draw
-   in software — no GPU, hardware acceleration switched off, a blocklisted
-   driver. The scene would run there, but in stutters, and the CSS background
-   is the better page. scene.js asks the same of its own context. */
-function hasWebGL2() {
+   Creating a WebGL context is the most expensive single call on the page:
+   the first one sets up the channel to the GPU, ~100 ms on a fast desktop
+   and the bulk of the blocking time Lighthouse measures on a phone. The
+   probe used to be thrown away and the renderer made a second one; now the
+   probe is made with the attributes the renderer needs and handed to it
+   (scene.js), so that cost is paid once. */
+const ATTRIBUTES = {
+  alpha: true, antialias: true, depth: true, stencil: false,
+  premultipliedAlpha: true, preserveDrawingBuffer: false,
+  powerPreference: 'default', failIfMajorPerformanceCaveat: true
+};
+function createContext() {
   try {
-    const gl = document.createElement('canvas').getContext('webgl2', { failIfMajorPerformanceCaveat: true });
-    if (!gl) return false;
-    gl.getExtension('WEBGL_lose_context')?.loseContext();
-    return true;
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl2', ATTRIBUTES);
+    return gl ? { canvas, gl } : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -47,7 +56,15 @@ async function start() {
      the page has painted once: it used to leave at ~140 ms and share the
      line with the fonts while the headline was still unpainted (~315 ms).
      The loader covers the gap; the shaders still compile under it. */
-  const sceneReady = !saveData ? afterFirstPaint().then(() => (hasWebGL2() ? import('./scene.js') : null)) : null;
+  const sceneReady = !saveData
+    ? afterFirstPaint().then(() => {
+      const context = createContext();
+      return context && import('./scene.js').then(mod => ({ mod, context }), err => {
+        context.gl.getExtension('WEBGL_lose_context')?.loseContext();
+        throw err;
+      });
+    })
+    : null;
 
   /* The loader (app.js) holds at 100 % while this class is on, so the shaders
      compile under it — but for 1.2 s at most; a slow scene fades in after the
@@ -72,9 +89,9 @@ async function start() {
   if (!sceneReady) return;
 
   try {
-    const mod = await sceneReady;
-    if (!mod) return;                    // no WebGL2 after all
-    await mod.initScene(scroll);
+    const ready = await sceneReady;
+    if (!ready) return;                  // no WebGL2, or none with a GPU behind it
+    await ready.mod.initScene(scroll, ready.context);
   } catch (err) {
     /* the CSS background is still in place and nothing depends on the scene */
     document.querySelector('canvas.scene')?.remove();

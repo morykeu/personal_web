@@ -94,9 +94,12 @@ debug.js    přehled pro ?debug=1
 | ostatní | plynulý scroll, mikroanimace i scéna |
 
 „Bez GPU“ znamená, že prohlížeč by WebGL kreslil softwarově (vypnutá
-hardwarová akcelerace, ovladač na blocklistu). Brána i renderer žádají kontext
+hardwarová akcelerace, ovladač na blocklistu). Brána žádá kontext
 s `failIfMajorPerformanceCaveat: true`, takže takový prohlížeč místo trhané
-scény dostane CSS pozadí — bez chyb v konzoli.
+scény dostane CSS pozadí — bez chyb v konzoli. Tenhle zkušební kontext pak
+převezme renderer: vytvoření WebGL kontextu je nejdražší jednotlivé volání na
+stránce (první naváže spojení s GPU, ~100 ms i na rychlém desktopu) a dřív se
+dělalo dvakrát.
 
 Three.js je za dynamickým importem, takže si ho první dva řádky tabulky
 vůbec nestáhnou. Ostatním se začne stahovat až po prvním vykreslení
@@ -192,10 +195,17 @@ nad závojem a pod jejím textem. Na dotyku a bez čočky zůstávají clony.
 `src/scene/quality.js` hlídá frame time scény (interval mezi snímky) v
 sekundových oknech, ve všech prohlížečích:
 
-- dvě okna za sebou pomalejší než 18 ms → o krok níž: pixel ratio
-  1,5 → 1,25 → 1, a když nestačí ani 1, hlavička vymění `backdrop-filter`
-  za neprůhledné pozadí (`.header-solid`). Rozhoduje změřený výkon, ne
-  user agent.
+- **strop 30 FPS** (Safari v úsporném režimu, Energy Saver v Chromu): snímky
+  kolem 33 ms a skoro nikdy rychlejší, přitom práce scény malá. To není
+  zátěž — kvalita se kvůli tomu nesnižuje. Brzdí ale Lenis, který scrolluje
+  v těch samých snímcích, takže po dvou takových sekundách převezme kolečko
+  zase prohlížeč (nativní scroll běží v plném tempu displeje) a Lenis se
+  vrátí po třech sekundách plného tempa. Hlídá se průběžně — strop se mění
+  za běhu, třeba po připojení nabíječky.
+- skutečná zátěž (pomalé snímky bez podpisu stropu), dvě okna za sebou
+  pomalejší než 18 ms → o krok níž: pixel ratio 1,5 → 1,25 → 1, a když
+  nestačí ani 1, hlavička vymění `backdrop-filter` za neprůhledné pozadí
+  (`.header-solid`). Rozhoduje změřený výkon, ne user agent.
 - zpátky nahoru až po delší době rychlých snímků: pod 12 ms, nebo v tempu
   displeje (60Hz displej nikdy nejde pod 16,7 ms). První pokus po 5 s; když
   se do 4 s musí vrátit, čekání se zdvojnásobí, a po třech neúspěšných
@@ -212,8 +222,9 @@ time (průměr, FPS, nejhorší snímek, podíl snímků nad 20 ms), čas snímk
 scény na hlavním vlákně a co právě dělá adaptivní kvalita.
 
 Pod tím jsou přepínače pro hledání, co brzdí: pixel ratio (auto / 1 / 1,25 /
-1,5), blur hlavičky (jen s pevným pixel ratio — v auto ho řídí `quality.js`),
-plynulý scroll Lenisu (vypnutý = kolečko scrolluje nativně) a celý
+1,5), blur hlavičky a plynulý scroll Lenisu (vypnutý = kolečko scrolluje
+nativně) — oba jen s pevným pixel ratio, v auto je řídí `quality.js` a řádek
+`quality` ukáže i strop 30 FPS —, a celý
 full-screen průchod čočky (vypnutý = vrátí se CSS clony). Prohlížeč, který
 omezuje animace na 30 FPS (Safari v úsporném režimu), se v přehledu ukáže
 jako stálých ~33 ms bez ohledu na přepínače. Tlačítko „measure 5 s“ změří
