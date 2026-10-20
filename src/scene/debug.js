@@ -12,7 +12,9 @@ import { gsap } from 'gsap';
    line is measured here, from requestAnimationFrame, over the last second:
    average interval, frame rate, the worst frame and the share of frames over
    20 ms. A browser that caps animation at 30 fps (Safari in Low Power Mode)
-   shows as a steady ~33 ms whatever is switched off.
+   shows as a steady ~33 ms whatever is switched off. "measure 5 s" takes the
+   same numbers over five seconds — scroll while it runs — and keeps the last
+   runs, each with the settings it was taken with, so they can be compared.
 
    With a mouse it also carries the lens' controls: a switch per effect, a
    slider per tuning value (lens.js `tune`, changed live), and an A/B button —
@@ -40,6 +42,7 @@ const RATIOS = [1, 1.25, 1.5];
 const SLOW = 20;                            // ms: a frame over this is counted as slow
 
 const SECTION = 'margin-top:6px;padding-top:6px;border-top:1px solid rgba(167,139,250,.25)';
+const BUTTON = 'display:block;margin-top:6px;font:inherit;color:inherit;background:rgba(167,139,250,.14);border:1px solid rgba(167,139,250,.35);padding:3px 8px;cursor:pointer';
 
 function checkbox(name, checked, change) {
   const label = document.createElement('label');
@@ -79,6 +82,12 @@ export function initDebug({ read, timing, quality, scroll, lens }) {
   const smooth = checkbox('smooth scroll (Lenis)', scroll.smooth, on => { scroll.smooth = on; });
   perf.append(pick, blur.label, smooth.label);
   if (lens) perf.append(checkbox('lens pass (post-process)', lens.pass, on => { lens.pass = on; }).label);
+  const test = document.createElement('button');
+  test.type = 'button';
+  test.textContent = 'measure 5 s (scroll while it runs)';
+  test.style.cssText = BUTTON;
+  test.addEventListener('click', () => runTest(test));
+  perf.append(test);
   box.append(perf);
 
   /* a fixed pixel ratio hands the header switch over too */
@@ -119,7 +128,7 @@ export function initDebug({ read, timing, quality, scroll, lens }) {
     const ab = document.createElement('button');
     ab.type = 'button';
     ab.textContent = 'A/B: effects off vs on (4 s)';
-    ab.style.cssText = 'margin-top:6px;font:inherit;color:inherit;background:rgba(167,139,250,.14);border:1px solid rgba(167,139,250,.35);padding:3px 8px;cursor:pointer';
+    ab.style.cssText = BUTTON;
     ab.addEventListener('click', () => runAB(ab, flags));
     panel.append(ab);
     box.append(panel);
@@ -165,9 +174,12 @@ export function initDebug({ read, timing, quality, scroll, lens }) {
   /* --- read-out ------------------------------------------------------------ */
   /* every frame interval of the last second, straight from rAF */
   const frames = [];
-  let prev = 0;
+  let prev = 0, testing = null;
   function sample(now) {
-    if (prev) frames.push({ at: now, ms: now - prev });
+    if (prev) {
+      frames.push({ at: now, ms: now - prev });
+      if (testing && now < testing.until) testing.ms.push(now - prev);
+    }
     prev = now;
     while (frames.length && now - frames[0].at > 1000) frames.shift();
     requestAnimationFrame(sample);
@@ -176,9 +188,24 @@ export function initDebug({ read, timing, quality, scroll, lens }) {
   /* a hidden tab stops rAF; its first frame back is not a slow frame */
   document.addEventListener('visibilitychange', () => { prev = 0; frames.length = 0; });
 
-  function frameLine() {
-    if (frames.length < 2) return '—';
-    const ms = frames.map(f => f.ms);
+  /* five seconds of frame intervals, labelled with what was switched on */
+  const tests = [];
+  function runTest(button) {
+    button.disabled = true;
+    const q = quality.status;
+    const what = `dpr ${q.dpr}${q.auto ? ' (auto)' : ''} · header ${q.solid ? 'solid' : 'blur'} · ${scroll.smooth ? 'lenis' : 'native wheel'}` +
+      (lens ? ` · lens pass ${lens.pass ? 'on' : 'off'}` : '');
+    testing = { ms: [], until: performance.now() + 5000, what };
+    setTimeout(() => {
+      tests.unshift(`${testing.what}\n  ${testing.ms.length > 1 ? stats(testing.ms) : '—'}`);
+      tests.length = Math.min(tests.length, 6);
+      testing = null;
+      button.disabled = false;
+    }, 5000);
+  }
+
+  const frameLine = () => (frames.length < 2 ? '—' : stats(frames.map(f => f.ms)));
+  function stats(ms) {
     const avg = ms.reduce((a, b) => a + b, 0) / ms.length;
     const worst = Math.max(...ms);
     const slow = ms.filter(v => v > SLOW).length / ms.length;
@@ -216,6 +243,8 @@ export function initDebug({ read, timing, quality, scroll, lens }) {
       `frame     ${frameLine()}`,
       `scene js  ${i.cpu.toFixed(2)} ms`,
       `quality   ${qualityLine()}`,
+      ...(testing ? ['', `measuring… ${Math.ceil((testing.until - now) / 1000)} s — scroll now`] : []),
+      ...(tests.length ? ['', 'last 5 s runs, newest first', ...tests] : []),
       ...(result ? ['', result] : [])
     ].join('\n');
   });

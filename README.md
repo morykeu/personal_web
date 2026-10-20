@@ -216,7 +216,9 @@ Pod tím jsou přepínače pro hledání, co brzdí: pixel ratio (auto / 1 / 1,2
 plynulý scroll Lenisu (vypnutý = kolečko scrolluje nativně) a celý
 full-screen průchod čočky (vypnutý = vrátí se CSS clony). Prohlížeč, který
 omezuje animace na 30 FPS (Safari v úsporném režimu), se v přehledu ukáže
-jako stálých ~33 ms bez ohledu na přepínače.
+jako stálých ~33 ms bez ohledu na přepínače. Tlačítko „measure 5 s“ změří
+totéž za pět sekund (během nich se scrolluje) a drží posledních šest měření
+i s nastavením, při kterém vznikla — dají se tak porovnat vedle sebe.
 
 S myší má navíc přepínače čočky (čočka, aberace, reakce scény), posuvníky pro
 ladění čočky (velikost, tuhost a tlumení pružiny, síla lomu, intenzita lesku —
