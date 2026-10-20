@@ -24,8 +24,7 @@
 
 /* clearance from the headline's letters */
 const CLEAR_INK = 40;
-/* clearance from the rest of the hero copy: the scene dims itself for about
-   60px around text (dim.js), and the globe beside the copy stays out of that */
+/* clearance from the rest of the hero copy */
 const CLEAR_COPY = 60;
 /* from the window edges, and from the bottom of the header */
 const EDGE = 16;

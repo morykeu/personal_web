@@ -9,7 +9,6 @@ import { createBeacon } from './beacon.js';
 import { createStars } from './stars.js';
 import { createTrace } from './trace.js';
 import { heroPlacement } from './layout.js';
-import { createDim } from './dim.js';
 import { createLens, tune } from './lens.js';
 import { createQuality } from './quality.js';
 import { fine, pointer, flags } from '../motion/pointer.js';
@@ -106,15 +105,6 @@ export async function initScene(scroll, { canvas, gl }) {
   scene.add(...beacon.sprites);
   const stars = createStars({ colors, glow, count: lite ? 900 : 1800 });
   scene.add(stars.points);
-  /* every material dims itself softly under text (dim.js); the bright ones —
-     points and sprites, the glowing arcs of the packets and the project
-     links, the orbits — twice over */
-  const dim = createDim();
-  const bright = new Set();
-  network.group.traverse(o => bright.add(o));
-  links.group.traverse(o => bright.add(o));
-  orbits.group.traverse(o => bright.add(o));
-  scene.traverse(o => { if (o.material) dim.apply(o.material, bright.has(o) || o.isPoints || o.isSprite); });
   /* The lens and the pull towards the mouse exist only with a mouse. If the
      lens cannot be set up, nothing is lost but the drop.
      passes.lens is ?debug=1's switch for the whole full-screen pass. */
@@ -122,7 +112,7 @@ export async function initScene(scroll, { canvas, gl }) {
   const passes = { lens: true };
   if (fine && !lite) {
     try {
-      lens = createLens({ renderer, dim, colors: lensColors() });
+      lens = createLens({ renderer, colors: lensColors() });
     } catch (err) {
       console.warn('[lens] disabled:', err);
     }
@@ -163,14 +153,11 @@ export async function initScene(scroll, { canvas, gl }) {
 
   let W = 0, H = 0, hero = null, scale = 1, fovK = 1;
 
-  const header = document.querySelector('header');
-  let headerBottom = 0;
 
   /* measured hero placement → the hero's vector, in the same viewport
      fractions every other state is written in */
   function fit() {
     hero = heroPlacement(W, H);
-    headerBottom = header.getBoundingClientRect().height;
     const v = vectors.hero;
     v[IX.x] = hero.cx / W;
     v[IX.y] = hero.cy / H;
@@ -287,7 +274,6 @@ export async function initScene(scroll, { canvas, gl }) {
     if (trace && revealedAt >= 0) {
       trace.update(dt, time - revealedAt, { cx: S.x * W, cy: S.y * H, r: (S.size * Math.min(W, H)) / 2 });
     }
-    dim.update(window.scrollY, H, renderer.getPixelRatio(), headerBottom);
     renderer.render(scene, camera);
     if (lens && passes.lens && revealedAt >= 0) { lens.update(dt, W, H); lens.render(); }
   }

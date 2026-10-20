@@ -23,9 +23,9 @@ import { pointer, flags } from '../motion/pointer.js';
    three renders those in linear colour and the canvas in sRGB, and the
    scene's additive glows would change look the moment the pass came on.)
 
-   Under text the drop dims with the scene (dim.js) — the same soft low spot
-   in brightness, never a cut — and the letters keep their contrast from their
-   own dark aura (style.css).
+   Over text it is drawn just the same: the dark disc only lowers what is
+   behind the letters, and its light rim is a few pixels wide (measured
+   against the thinnest copy, style.css has the numbers).
 
    The header is above the canvas, behind a blurred veil, and would hide the
    drop. So while the drop is over it, the drop is copied into a small canvas
@@ -47,7 +47,7 @@ const IDLE_AFTER = 1.4;        // s
 const STRETCH = 0.45;          // the most it lengthens along its path
 const PULSE = 0.6;             // s a click ring runs
 
-export function createLens({ renderer, dim, colors }) {
+export function createLens({ renderer, colors }) {
   const header = document.querySelector('header');
   const canvas = renderer.domElement;
 
@@ -58,7 +58,6 @@ export function createLens({ renderer, dim, colors }) {
     return new Vector3(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
   };
   const uniforms = {
-    ...dim.uniforms,
     tScene: { value: null },
     uRes: { value: new Vector2() },
     uPos: { value: new Vector2() },
@@ -103,7 +102,6 @@ export function createLens({ renderer, dim, colors }) {
       uniform vec3 cViolet;
       uniform vec3 cMagenta;
       uniform vec3 cLilac;
-      ${dim.chunk}
 
       /* the film: violet → magenta → lilac and round again, never a rainbow */
       vec3 film(float t) {
@@ -142,8 +140,7 @@ export function createLens({ renderer, dim, colors }) {
             float red = texture2D(tScene, (at + off * split) / uRes).r;
             float blue = texture2D(tScene, (at - off * split) / uRes).b;
             /* dark glass, the refracted scene seen through it */
-            vec3 tint = cDisc * (1.0 - sg.a * 0.6);
-            vec3 glass = tint + vec3(red, sg.g, blue) * 0.72;
+            vec3 glass = cDisc * (1.0 - sg.a * 0.6) + vec3(red, sg.g, blue) * 0.72;
             /* thin film: strongest at the rim, dark in the middle; the hue runs
                round the rim, drifts with time and leans into the direction of
                travel */
@@ -158,13 +155,9 @@ export function createLens({ renderer, dim, colors }) {
             /* a soft pearly highlight, up and to the left */
             float spec = pow(max(dot(vec3(n.x, n.y, nz), normalize(vec3(-0.45, 0.55, 0.7))), 0.0), 16.0);
             vec3 drop = glass + sheen * 0.85 + cLilac * spec * 0.3 * uSheen;
-            /* the drop is opaque; the canvas holds premultiplied colour. Under
-               text it dims like the scene does — once, so its rim still shows
-               under the copy; the aura at the letters does the rest */
-            float f = kmDim();
-            drop *= f;
-            col.rgb = mix(col.rgb, drop, disc) + cMagenta * ring * 0.45 * f;
-            col.a = min(col.a + (1.0 - col.a) * disc + ring * 0.45 * f, 1.0);
+            /* the drop is opaque; the canvas holds premultiplied colour */
+            col.rgb = mix(col.rgb, drop, disc) + cMagenta * ring * 0.45;
+            col.a = min(col.a + (1.0 - col.a) * disc + ring * 0.45, 1.0);
           }
         }
         gl_FragColor = col;

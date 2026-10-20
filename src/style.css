@@ -93,7 +93,13 @@
   --violet:#a78bfa;
   --magenta:#e879f9;
   --text:#ece9f6;
-  --muted:#8a83a6;
+  /* The faintest copy colour, and so the one that sets how bright the scene
+     may be behind text (nothing dims it there). Measured on the pixels under
+     and around the letters, the brightest globe fill copy ends up over is
+     L 0.019 (body and rim glow, contact section); this is #8a83a6 moved a
+     tenth of the way to --text, the least that keeps 4.5:1 over it — 4.87
+     full, 4.57 for the traceroute labels at their .9 — and 6.47 on --ink. */
+  --muted:#948dae;
   --line:rgba(167,139,250,.13);
   --mono:"JetBrains Mono","JetBrains Mono Fallback",ui-monospace,SFMono-Regular,Menlo,monospace;
   --disp:"Space Grotesk","Space Grotesk Fallback",system-ui,-apple-system,sans-serif;
@@ -152,27 +158,14 @@ body::before{
    target itself is not a control */
 :is(main,section)[tabindex="-1"]:focus{outline:none}
 
-/* Text over the scene. Stars cover the whole window and the globe and the
-   lens can pass behind any copy, so while the scene runs every piece of text
-   carries a dark aura in the page colour: tight shadows that make the ground
-   right at the letters solid, wider ones that fade out. Over the plain
-   background it is invisible; over the brightest part of the scene it keeps
-   every glyph at 4.5:1 or more (measured on the pixels under and around the
-   letters, both languages, desktop with the lens under the text, and phone).
-   Under the text the scene also dims itself, softly and without an edge
-   (src/scene/dim.js), so the aura never has to hold off a full-brightness
-   globe. Nothing is boxed in and nothing is cut away. */
-.has-scene .wrap{
-  text-shadow:0 0 1px var(--ink),0 0 2px var(--ink),0 0 3px var(--ink),0 0 4px var(--ink),0 0 8px var(--ink),0 0 18px rgba(5,5,10,.8);
-}
-/* buttons do not inherit it: the UA stylesheet resets their text-shadow */
-.has-scene .wrap button{text-shadow:inherit}
-/* SVG text takes no text-shadow in every browser; the hop labels get the
-   same ground from an outline in the page colour, painted under the fill */
-.has-scene :is(.hoplbl,.hopms){paint-order:stroke;stroke:var(--ink);stroke-width:6px;stroke-linejoin:round}
+/* Text over the scene. No scrim, no aura, no dimming behind the copy: the
+   scene is drawn the same everywhere, and the text holds 4.5:1 by its own
+   colour. The globe's states are lit so that the brightest of its fill a
+   piece of copy can end up over still leaves room for the faintest colour
+   used there (--muted, see :root). */
 
-/* position:relative stays from the scrims these elements used to carry: the
-   trace packet is placed inside #hops, and nothing here should move */
+/* positioned while the scene runs: the trace packet is placed inside #hops,
+   and the rest keep the stacking they have always had over the canvas */
 .has-scene :is(#hero .status,#hero .lede,#hero .hops,.eyebrow>span,.about p,.row h3,.row p,.row .repo,.spec li,.note,.tl .yr,.tl .body>*,.mailto,.links>*,footer>span),
 .has-scene.scene-behind #hero h1{
   position:relative;

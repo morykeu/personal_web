@@ -79,7 +79,6 @@ orbits.js   oběžné dráhy se satelity
 beacon.js   paket od uzlu „já“ k divákovi v kontaktu
 trace.js    paket z glóbu na první hop traceroute v hero
 lens.js     čočka pod kurzorem: tmavá kapka s lomem a perleťovým leskem
-dim.js      měkké ztlumení scény pod textem (rozmazaná maska textových bloků)
 quality.js  adaptivní kvalita: pixel ratio a hlavička podle měřeného frame time
 stars.js    hvězdy
 glow.js     textury pro body, sprity a pulz
@@ -104,7 +103,7 @@ Three.js je za dynamickým importem, takže si ho první dva řádky tabulky
 vůbec nestáhnou. Ostatním se začne stahovat až po prvním vykreslení
 stránky (dva `requestAnimationFrame`), takže nadpis na scénu nikdy nečeká.
 Když scéna běží, má `<html>` třídu `.has-scene` — podle ní se schovají glow
-divy a text dostane tmavou auru (viz *Kontrast nad scénou*).
+divy (kontrast textu nad scénou viz *Kontrast nad scénou*).
 
 Barvy scéna čte z CSS proměnných `--violet`, `--magenta`, `--text` a `--ink`,
 takže změna palety v `:root` se do ní propíše sama.
@@ -152,8 +151,7 @@ počítaný jen po tikách tam trval 12 s.
 
 Když scéna běží, vyletí po odkrytí z glóbu paket, doletí na první uzel
 traceroute a teprve pak se trasa začne kreslit. Paket je prvek stránky, ne
-scény — scéna se pod traceroute tlumí a paket by v ní před přistáním
-vybledl.
+scény, takže přistane přesně na kroužku hopu.
 
 ### Čočka pod kurzorem
 
@@ -178,33 +176,31 @@ textury a jeden průchod přes celou plochu canvas překreslí — s kapkou navr
 (Render target to není schválně: three do něj kreslí v lineárních barvách
 a aditivní záře scény by pak vypadaly jinak.)
 
-Pod textem se kapka tlumí stejně jako scéna (viz *Kontrast nad scénou*),
-jednou, takže její okraj je vidět i pod textem.
-Kapka v hlavičce se kreslí do malé kopie uvnitř hlavičky, nad závojem a pod
+Kapka se kreslí všude stejně, i pod textem. Kapka v hlavičce se kreslí do malé kopie uvnitř hlavičky, nad závojem a pod
 jejím textem.
 
 ### Kontrast nad scénou
 
-Žádné clony ani vyříznutá místa — glóbus i čočka jsou vidět všude, pod
-textem jen ztlumené. Drží to dvě věci dohromady:
+Za textem není nic — žádné clony, aura, ztlumení ani vyříznutá místa. Scéna
+i čočka se kreslí všude stejně a text drží kontrast 4,5 : 1 svou barvou:
 
-- **Aura u písmen** (`style.css`, `.has-scene .wrap`): několik vrstev
-  `text-shadow` v barvě `--ink`, těsné vrstvy dělají pod písmeny a hned
-  vedle nich tmavý podklad, širší se rozplynou. Nad prázdným pozadím není
-  vidět. SVG text (popisky traceroute) `text-shadow` všude neumí, ten má
-  obrys v `--ink` pod výplní (`paint-order: stroke`).
-- **Měkké ztlumení scény** (`src/scene/dim.js`): rozmazaná maska textových
-  bloků v nízkém rozlišení (1 texel = 8 px) přes celý dokument. Shadery ji
-  čtou podle pozice na stránce, takže scroll nestojí nic; překreslí se jen
-  při resize, přepnutí jazyka, načtení fontů a po dojetí sekce. Jas pod
-  textem se odvozuje z barvy řádku: pod bílým textem 50 %, pod fialovým
-  a magentovým ~40 %, pod šedým (`--muted`) 15 % — šedý snese nejmíň.
-  Nejjasnější části scény (body, sprity, oblouky paketů a spojení, orbity)
-  se tlumí dvakrát (na druhou), drátěný glóbus, jeho tělo a čočka jednou. Pod hlavičkou je pás na 60 % s měkkým přechodem.
+- nejsvětlejší **výplň** glóbu (tělo a záře okraje), nad kterou se text
+  v některém stavu ocitne, má L 0,019 (kontaktní sekce); měřeno na pixelech
+  pod písmeny a do 2 px kolem nich, se skrytými body, sprity, oblouky
+  a čarami, CZ i EN, 1440×900 a 390×844
+- proti ní nejslabší barva textu `--muted` nevycházela (4,28 : 1), takže je
+  o desetinu posunutá k `--text`: `#8a83a6` → `#948dae` (4,87 : 1, popisky
+  traceroute s průhledností .9 4,57 : 1)
 
-Ověřené měřením na pixelech pod písmeny a do 2 px kolem nich (stránka
-zmrazená, pozadí s aurou proti výplni každé barvy textu zvlášť), CZ i EN,
-1920, 1440 a 1024 px s čočkou pod textem a 390 a 360 px na dotyku.
+Výplní se rozumí plocha glóbu. Tenké tahy (drátěná síť, orbity), oblouky
+paketů a spojení, pakety, uzly, hvězdy a okraj čočky přes písmena
+přejíždějí a v těch pixelech kontrast klesá; čísla jsou v posledním reportu
+QA. Kdyby měly projít i tahy, musel by se glóbus v sekcích s textem ztlumit
+zhruba na 0,2–0,25 (dnes 0,3–0,6).
+
+Scéna nečte za snímek žádné pozice z DOM: kreslí se se scrollem ze stejného
+snímku jako stránka (Lenis běží v tickeru GSAP před renderem), takže se nic
+proti textu neposouvá.
 
 ### Adaptivní kvalita
 
