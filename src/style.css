@@ -341,6 +341,14 @@ header{
   background:color-mix(in srgb,var(--ink) 70%,transparent);
   -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
 }
+/* The cheaper header, for a browser that cannot keep up even at the lowest
+   pixel ratio (src/scene/quality.js sets the class, measured, never by
+   browser name). The blur re-filters the moving scene and the page under it
+   on every frame. Opaque rather than just darker: without the blur, copy
+   scrolling under the veil stays sharp right behind the 11px nav labels —
+   a white glyph under the usual 70 % veil takes --muted to 2.3:1, and it
+   takes ~90 % to stay above 4.5:1, at which point solid looks cleaner. */
+.header-solid header{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--ink)}
 /* Skip link: parked above the window until it takes focus. Above the header
    and the loader, on its own solid ground — the scene behind it never shows
    through, so its contrast does not depend on what is drawn there. No

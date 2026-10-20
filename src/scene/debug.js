@@ -2,7 +2,17 @@ import { gsap } from 'gsap';
 
 /* ?debug=1 — a small read-out of what the scene is doing: which state, how
    far through the hand-over to the next one, where the globe is placed, the
-   frame rate and the time the scene's frame takes on the main thread.
+   frame time and the time the scene's frame takes on the main thread.
+
+   Performance, for finding what slows a browser down (Safari's scrolling was
+   the reason): the pixel ratio — automatic (quality.js) or fixed at 1, 1.25 or
+   1.5 — and switches for the header's backdrop blur, Lenis' smooth wheel and
+   the lens' full-screen pass. The header switch only works with a fixed
+   pixel ratio; in automatic mode it shows what quality.js chose. The frame
+   line is measured here, from requestAnimationFrame, over the last second:
+   average interval, frame rate, the worst frame and the share of frames over
+   20 ms. A browser that caps animation at 30 fps (Safari in Low Power Mode)
+   shows as a steady ~33 ms whatever is switched off.
 
    With a mouse it also carries the lens' controls: a switch per effect, a
    slider per tuning value (lens.js `tune`, changed live), and an A/B button —
@@ -26,35 +36,70 @@ const SLIDERS = [
   ['refract', 'refraction', 0, 1, 0.01],
   ['sheen', 'sheen', 0, 2, 0.05]
 ];
+const RATIOS = [1, 1.25, 1.5];
+const SLOW = 20;                            // ms: a frame over this is counted as slow
 
-export function initDebug(read, controls, timing) {
+const SECTION = 'margin-top:6px;padding-top:6px;border-top:1px solid rgba(167,139,250,.25)';
+
+function checkbox(name, checked, change) {
+  const label = document.createElement('label');
+  label.style.cssText = 'display:block;cursor:pointer';
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.checked = checked;
+  input.style.cssText = 'margin:0 6px 0 0;vertical-align:-2px';
+  input.addEventListener('change', () => change(input.checked));
+  label.append(input, name);
+  return { label, input };
+}
+
+export function initDebug({ read, timing, quality, scroll, lens }) {
   const box = document.createElement('div');
   box.setAttribute('aria-hidden', 'true');
   Object.assign(box.style, {
     position: 'fixed', left: '12px', bottom: '12px', zIndex: '200',
     font: '11px/1.55 "JetBrains Mono", ui-monospace, monospace', color: '#ece9f6',
     background: 'rgba(5,5,10,.9)', border: '1px solid rgba(167,139,250,.35)',
-    padding: '8px 11px', whiteSpace: 'pre', pointerEvents: controls ? 'auto' : 'none'
+    padding: '8px 11px', whiteSpace: 'pre', maxHeight: 'calc(100vh - 24px)', overflow: 'auto'
   });
   const text = document.createElement('div');
   box.append(text);
   document.body.append(box);
 
+  /* --- performance ------------------------------------------------------- */
+  const perf = document.createElement('div');
+  perf.style.cssText = SECTION;
+  const pick = document.createElement('label');
+  pick.style.cssText = 'display:block';
+  const select = document.createElement('select');
+  select.style.cssText = 'margin-left:6px;font:inherit;color:inherit;background:#0a0912;border:1px solid rgba(167,139,250,.35)';
+  for (const v of ['auto', ...RATIOS]) select.add(new Option(v === 'auto' ? 'auto (adaptive)' : String(v), String(v)));
+  pick.append('pixel ratio', select);
+  const blur = checkbox('header blur (backdrop-filter)', true, () => fixed());
+  const smooth = checkbox('smooth scroll (Lenis)', scroll.smooth, on => { scroll.smooth = on; });
+  perf.append(pick, blur.label, smooth.label);
+  if (lens) perf.append(checkbox('lens pass (post-process)', lens.pass, on => { lens.pass = on; }).label);
+  box.append(perf);
+
+  /* a fixed pixel ratio hands the header switch over too */
+  function fixed() {
+    if (select.value === 'auto') return;
+    quality.manual(Number(select.value), !blur.input.checked);
+  }
+  select.addEventListener('change', () => {
+    if (select.value === 'auto') quality.automatic();
+    else fixed();
+  });
+
+  /* --- lens --------------------------------------------------------------- */
   let result = '';
   const inputs = {};
-  if (controls) {
-    const { flags, tune } = controls;
+  if (lens) {
+    const { flags, tune } = lens;
     const panel = document.createElement('div');
-    panel.style.cssText = 'margin-top:6px;padding-top:6px;border-top:1px solid rgba(167,139,250,.25)';
+    panel.style.cssText = SECTION;
     for (const [key, name] of Object.entries(SWITCHES)) {
-      const label = document.createElement('label');
-      label.style.cssText = 'display:block;cursor:pointer';
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.checked = flags[key];
-      input.style.cssText = 'margin:0 6px 0 0;vertical-align:-2px';
-      input.addEventListener('change', () => { flags[key] = input.checked; });
-      label.append(input, name);
+      const { label, input } = checkbox(name, flags[key], on => { flags[key] = on; });
       panel.append(label);
       inputs[key] = input;
     }
@@ -117,24 +162,60 @@ export function initDebug(read, controls, timing) {
     button.disabled = false;
   }
 
-  let frames = 0, since = performance.now();
+  /* --- read-out ------------------------------------------------------------ */
+  /* every frame interval of the last second, straight from rAF */
+  const frames = [];
+  let prev = 0;
+  function sample(now) {
+    if (prev) frames.push({ at: now, ms: now - prev });
+    prev = now;
+    while (frames.length && now - frames[0].at > 1000) frames.shift();
+    requestAnimationFrame(sample);
+  }
+  requestAnimationFrame(sample);
+  /* a hidden tab stops rAF; its first frame back is not a slow frame */
+  document.addEventListener('visibilitychange', () => { prev = 0; frames.length = 0; });
+
+  function frameLine() {
+    if (frames.length < 2) return '—';
+    const ms = frames.map(f => f.ms);
+    const avg = ms.reduce((a, b) => a + b, 0) / ms.length;
+    const worst = Math.max(...ms);
+    const slow = ms.filter(v => v > SLOW).length / ms.length;
+    const sorted = [...ms].sort((a, b) => a - b);
+    const median = sorted[sorted.length >> 1];
+    const capped = median > 31 && median < 36 && sorted[Math.floor(sorted.length * 0.1)] > 30;
+    return `${avg.toFixed(1)} ms · ${(1000 / avg).toFixed(0)} fps · worst ${worst.toFixed(0)} · slow ${(slow * 100).toFixed(0)} %` +
+      (capped ? '\n          capped at 30 fps? (Low Power Mode)' : '');
+  }
+
+  function qualityLine() {
+    const q = quality.status;
+    blur.input.checked = !q.solid;
+    blur.input.disabled = q.auto;
+    const head = q.auto ? `auto ${q.level}/${q.levels - 1}` : 'fixed';
+    const up = q.up === null ? '' : ` · up in ${(q.up / 1000).toFixed(0)} s`;
+    const tries = q.auto && q.failed ? ` · failed tries ${q.failed}` : '';
+    return `${head} · dpr ${q.dpr} · header ${q.solid ? 'solid' : 'blur'}${up}${tries}`;
+  }
+
+  let since = performance.now();
   gsap.ticker.add(() => {
-    frames++;
     const now = performance.now();
     if (now - since < 500) return;
-    const fps = (frames * 1000) / (now - since);
-    frames = 0;
     since = now;
     const i = read();
     text.textContent = [
       `state     ${i.state}`,
       `blend     ${i.blend}`,
       `progress  ${i.progress}`,
-      `scroll    ${i.scroll}${i.jump ? `  → jump to ${i.jump}` : ''}`,
+      `scroll    ${i.scroll}${i.jump ? `  → jump to ${i.jump}` : ''}${scroll.smooth ? '' : '  (native wheel)'}`,
       `globe     ${i.globe}`,
       `mode      ${i.mode}`,
       `lens      ${i.lens}`,
-      `fps       ${fps.toFixed(0)}  · scene ${i.cpu.toFixed(2)} ms`,
+      `frame     ${frameLine()}`,
+      `scene js  ${i.cpu.toFixed(2)} ms`,
+      `quality   ${qualityLine()}`,
       ...(result ? ['', result] : [])
     ].join('\n');
   });

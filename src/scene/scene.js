@@ -12,6 +12,7 @@ import { heroPlacement } from './layout.js';
 import { createCopyMask } from './mask.js';
 import { createLens, tune } from './lens.js';
 import { createBudget } from './budget.js';
+import { createQuality } from './quality.js';
 import { fine, pointer, flags } from '../motion/pointer.js';
 import { states, forTouch, ORDER, KEYS } from './states.js';
 
@@ -78,9 +79,14 @@ export async function initScene(scroll) {
   canvas.setAttribute('aria-hidden', 'true');
   document.body.prepend(canvas);
 
-  const renderer = new WebGLRenderer({ canvas, alpha: true, antialias: true });
+  /* failIfMajorPerformanceCaveat: no context at all rather than one drawn in
+     software (no GPU, or the GPU blocklisted) — the gate in main.js asks the
+     same, so such a browser never gets this far and keeps the CSS background. */
+  const renderer = new WebGLRenderer({ canvas, alpha: true, antialias: true, failIfMajorPerformanceCaveat: true });
   renderer.setClearColor(0x000000, 0);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, lite ? 1 : 1.5));
+  const cap = Math.min(window.devicePixelRatio || 1, lite ? 1 : 1.5);
+  renderer.setPixelRatio(cap);
+  const quality = createQuality({ renderer, cap, root });
 
   const scene = new Scene();
   const camera = new PerspectiveCamera(BASE_FOV, 1, 0.1, 200);
@@ -106,8 +112,10 @@ export async function initScene(scroll) {
   const mask = createCopyMask();
   scene.traverse(o => { if (o.material) mask.apply(o.material); });
   /* The lens and the pull towards the mouse exist only with a mouse. If the
-     lens cannot be set up, nothing is lost: the CSS scrims stay on. */
+     lens cannot be set up, nothing is lost: the CSS scrims stay on.
+     passes.lens is ?debug=1's switch for the whole full-screen pass. */
   let lens = null;
+  const passes = { lens: true };
   if (fine && !lite) {
     try {
       lens = createLens({ renderer, budget: createBudget(), colors: lensColors() });
@@ -280,7 +288,7 @@ export async function initScene(scroll) {
     renderer.render(scene, camera);
     /* every frame, not only while the drop is shown: with a mouse the pass
        is also what keeps the text readable (budget.js) */
-    if (lens && revealedAt >= 0) { lens.update(dt, W, H); lens.render(); }
+    if (lens && passes.lens && revealedAt >= 0) { lens.update(dt, W, H); lens.render(); }
   }
 
   /* Watching the canvas box rather than window resize: the scrollbar appearing
@@ -294,6 +302,8 @@ export async function initScene(scroll) {
 
   function tick(_, deltaMs) {
     if (document.hidden) return;
+    /* the A/B below waits for the GPU on purpose; those frames say nothing */
+    if (!timing.sync) quality.frame(deltaMs);
     if (resizeDirty) {
       resizeDirty = false;
       /* a resize jumps straight to the new placement — easing it would
@@ -314,7 +324,7 @@ export async function initScene(scroll) {
   canvas.addEventListener('webglcontextlost', () => {
     gsap.ticker.remove(tick);
     lens?.dispose();
-    root.classList.remove('has-scene');
+    root.classList.remove('has-scene', 'header-solid');
     canvas.classList.remove('is-on');
   }, { once: true });
 
@@ -354,11 +364,20 @@ export async function initScene(scroll) {
       jump: jump && jump.to,
       globe: `${Math.round(S.x * W)}, ${Math.round(S.y * H)}  ⌀${Math.round(S.size * Math.min(W, H))}px`,
       mode: `${lite ? 'touch' : 'pointer'} · hero ${hero.mode} · fov ${S.fov.toFixed(0)}`,
-      lens: lens ? (lens.visible ? 'on' : 'hidden') + ' · contrast budget on' : 'off (no mouse) · CSS scrims',
+      lens: !lens ? 'off (no mouse) · CSS scrims' : !passes.lens ? 'pass off · CSS scrims' : (lens.visible ? 'on' : 'hidden') + ' · contrast budget on',
       cpu
     };
   };
-  if (debug) import('./debug.js').then(m => m.initDebug(read, lens ? { flags, tune } : null, timing));
+  if (debug) {
+    import('./debug.js').then(m => m.initDebug({
+      read, timing, quality, scroll,
+      lens: lens && {
+        flags, tune,
+        get pass() { return passes.lens; },
+        set pass(on) { passes.lens = on; lens.active = on; }
+      }
+    }));
+  }
 
   if (import.meta.env.DEV) {
     /* dev-only handle for stepping and inspecting frames; compiled out of the

@@ -88,6 +88,11 @@ export function initScroll() {
     first: segments.length ? segments[0].from : ORDER[0],
     segments: segments.map(({ from, to }) => ({ from, to })),
     get y() { return lenis.animatedScroll; },
+    /* ?debug=1 can hand the wheel back to the browser. Lenis reads the option
+       on every wheel event, so this takes effect on the next one; the scroll
+       position, anchors and triggers keep working through Lenis either way. */
+    get smooth() { return lenis.options.smoothWheel; },
+    set smooth(on) { lenis.options.smoothWheel = on; },
     /* the destination's scroll position while an anchor jump runs, else null */
     get jump() {
       if (jump && !lenis.userData?.kmJump) jump = null;

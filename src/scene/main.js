@@ -2,8 +2,8 @@
    decides how much of it a visitor gets, and downloads only that:
 
      prefers-reduced-motion   nothing: native scroll, CSS background
-     save-data or no WebGL2   smooth scroll and the section micro-animations
-                              (src/motion); CSS background stays
+     save-data, no WebGL2     smooth scroll and the section micro-animations
+     or no GPU for it         (src/motion); CSS background stays
      otherwise                all of that and the 3D scene
 
    three.js sits behind a dynamic import, so it is a separate chunk that is
@@ -17,10 +17,15 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const saveData = Boolean(navigator.connection && navigator.connection.saveData);
 
 /* three r186 is WebGL2-only, so WebGL1 support would not help. The probe
-   context is released straight away rather than left for the GC. */
+   context is released straight away rather than left for the GC.
+
+   failIfMajorPerformanceCaveat turns away a context the browser would draw
+   in software — no GPU, hardware acceleration switched off, a blocklisted
+   driver. The scene would run there, but in stutters, and the CSS background
+   is the better page. scene.js asks the same of its own context. */
 function hasWebGL2() {
   try {
-    const gl = document.createElement('canvas').getContext('webgl2');
+    const gl = document.createElement('canvas').getContext('webgl2', { failIfMajorPerformanceCaveat: true });
     if (!gl) return false;
     gl.getExtension('WEBGL_lose_context')?.loseContext();
     return true;

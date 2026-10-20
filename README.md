@@ -81,6 +81,7 @@ trace.js    paket z glóbu na první hop traceroute v hero
 mask.js     díra ve scéně pod nadpisem hero a pod hlavičkou (kontrast)
 lens.js     čočka pod kurzorem: tmavá kapka s lomem a perleťovým leskem
 budget.js   rozpočet kontrastu: jak jasné smí být pozadí pod každým řádkem textu
+quality.js  adaptivní kvalita: pixel ratio a hlavička podle měřeného frame time
 stars.js    hvězdy
 glow.js     textury pro body, sprity a pulz
 debug.js    přehled pro ?debug=1
@@ -89,8 +90,13 @@ debug.js    přehled pro ?debug=1
 | návštěvník | co dostane |
 | --- | --- |
 | `prefers-reduced-motion` | nic — nativní scroll, CSS pozadí (mřížka + glow) |
-| úspora dat nebo bez WebGL2 | plynulý scroll a mikroanimace; CSS pozadí zůstává |
+| úspora dat, bez WebGL2 nebo bez GPU | plynulý scroll a mikroanimace; CSS pozadí zůstává |
 | ostatní | plynulý scroll, mikroanimace i scéna |
+
+„Bez GPU“ znamená, že prohlížeč by WebGL kreslil softwarově (vypnutá
+hardwarová akcelerace, ovladač na blocklistu). Brána i renderer žádají kontext
+s `failIfMajorPerformanceCaveat: true`, takže takový prohlížeč místo trhané
+scény dostane CSS pozadí — bez chyb v konzoli.
 
 Three.js je za dynamickým importem, takže si ho první dva řádky tabulky
 vůbec nestáhnou. Ostatním se začne stahovat až po prvním vykreslení
@@ -181,15 +187,42 @@ bílý nadpis mnohem víc. Odkaz pod myší, který mění barvu, se přepočít
 každý snímek. Kapka v hlavičce se kreslí do malé kopie uvnitř hlavičky,
 nad závojem a pod jejím textem. Na dotyku a bez čočky zůstávají clony.
 
+### Adaptivní kvalita
+
+`src/scene/quality.js` hlídá frame time scény (interval mezi snímky) v
+sekundových oknech, ve všech prohlížečích:
+
+- dvě okna za sebou pomalejší než 18 ms → o krok níž: pixel ratio
+  1,5 → 1,25 → 1, a když nestačí ani 1, hlavička vymění `backdrop-filter`
+  za neprůhledné pozadí (`.header-solid`). Rozhoduje změřený výkon, ne
+  user agent.
+- zpátky nahoru až po delší době rychlých snímků: pod 12 ms, nebo v tempu
+  displeje (60Hz displej nikdy nejde pod 16,7 ms). První pokus po 5 s; když
+  se do 4 s musí vrátit, čekání se zdvojnásobí, a po třech neúspěšných
+  pokusech zůstane úroveň, kde je. Tím neosciluje.
+
+Snímky delší než 250 ms (skrytý panel, pauza) se nepočítají a první sekunda
+po každé změně se přeskakuje.
+
 ### Ladění
 
 S parametrem `?debug=1` se v rohu ukáže přehled: aktuální stav, která
-předávka běží a jak daleko je, scroll, umístění glóbu, stav čočky, FPS a čas
-snímku scény. S myší má navíc přepínače (čočka, aberace, reakce scény),
-posuvníky pro ladění čočky (velikost, tuhost a tlumení pružiny, síla lomu,
-intenzita lesku — mění se za běhu) a tlačítko A/B, které změří dvě sekundy
-bez efektů a dvě s nimi (FPS a čas snímku včetně GPU). Funguje i na produkci,
-ale kód se stáhne jen s parametrem.
+předávka běží a jak daleko je, scroll, umístění glóbu, stav čočky, frame
+time (průměr, FPS, nejhorší snímek, podíl snímků nad 20 ms), čas snímku
+scény na hlavním vlákně a co právě dělá adaptivní kvalita.
+
+Pod tím jsou přepínače pro hledání, co brzdí: pixel ratio (auto / 1 / 1,25 /
+1,5), blur hlavičky (jen s pevným pixel ratio — v auto ho řídí `quality.js`),
+plynulý scroll Lenisu (vypnutý = kolečko scrolluje nativně) a celý
+full-screen průchod čočky (vypnutý = vrátí se CSS clony). Prohlížeč, který
+omezuje animace na 30 FPS (Safari v úsporném režimu), se v přehledu ukáže
+jako stálých ~33 ms bez ohledu na přepínače.
+
+S myší má navíc přepínače čočky (čočka, aberace, reakce scény), posuvníky pro
+ladění čočky (velikost, tuhost a tlumení pružiny, síla lomu, intenzita lesku —
+mění se za běhu) a tlačítko A/B, které změří dvě sekundy bez efektů a dvě
+s nimi (FPS a čas snímku včetně GPU). Funguje i na produkci, ale kód se
+stáhne jen s parametrem.
 
 Ve vývojovém režimu (`npm run dev`) je v konzoli `window.__kmScene` — dá se
 s ním krokovat čas, číst aktuální stav a umístění a přepočítat layout. Do

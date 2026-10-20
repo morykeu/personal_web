@@ -330,6 +330,12 @@ export function createLens({ renderer, budget, colors }) {
         copied = { x: bx - 2, y: by - 2, w: bs + 4, h: bs + 4 };
       }
     },
+    /* ?debug=1 can switch the whole pass off: the CSS scrims come back
+       (they are keyed to .has-lens) and the drop's copy in the header goes */
+    set active(on) {
+      root.classList.toggle('has-lens', on);
+      if (!on && copied) { cctx.clearRect(copied.x, copied.y, copied.w, copied.h); copied = null; }
+    },
     dispose() { root.classList.remove('has-lens'); }
   };
 }
