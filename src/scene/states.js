@@ -14,7 +14,7 @@
      parallax  pointer parallax, 0 … 1
    Light
      bright    globe, arcs and orbits; 1 full. Kept low wherever the globe sits
-               behind copy — style.css adds a scrim behind muted text too
+               behind copy — under the text itself it dims further (dim.js)
      aura      fresnel rim
      stars     starfield
    Motion

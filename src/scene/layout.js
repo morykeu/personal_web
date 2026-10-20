@@ -22,12 +22,11 @@
    at 13ch — four lines instead of three — would free ~55 % at both sizes; that
    is a change to the design, so it is left as a proposal. */
 
-/* clearance from the headline's letters, which carry no scrim beside the globe */
+/* clearance from the headline's letters */
 const CLEAR_INK = 40;
-/* clearance from boxes that do get a scrim while the scene runs; the scrim
-   reaches 58px past its box (style.css), and the globe must not end up under
-   it */
-const CLEAR_SCRIM = 60;
+/* clearance from the rest of the hero copy: the scene dims itself for about
+   60px around text (dim.js), and the globe beside the copy stays out of that */
+const CLEAR_COPY = 60;
 /* from the window edges, and from the bottom of the header */
 const EDGE = 16;
 /* the globe's radius → the radius of everything drawn around it in the hero:
@@ -100,7 +99,7 @@ function largestCircle(bounds, obstacles) {
 }
 
 /* → { cx, cy, d, mode, ink }: centre and diameter of the globe in px, and the
-   headline's lines in document px (mask.js cuts the scene away under them).
+   headline's lines in document px.
    beside  the globe has its own space next to the copy, at full light
    behind  there is no such space; it sits behind the copy, dimmed (scene.js) */
 export function heroPlacement(W, H) {
@@ -110,10 +109,10 @@ export function heroPlacement(W, H) {
   const hops = document.getElementById('hops');
   const top = document.querySelector('header').getBoundingClientRect().height + EDGE;
 
-  const scrimmed = [hero.querySelector('.lede'), hero.querySelector('.status'), hops]
-    .map(el => ({ ...docRect(el.getBoundingClientRect(), sy), clear: CLEAR_SCRIM }));
+  const copy = [hero.querySelector('.lede'), hero.querySelector('.status'), hops]
+    .map(el => ({ ...docRect(el.getBoundingClientRect(), sy), clear: CLEAR_COPY }));
   const ink = inkLines(h1, sy);
-  const obstacles = [...ink.map(l => ({ ...l, clear: CLEAR_INK })), ...scrimmed];
+  const obstacles = [...ink.map(l => ({ ...l, clear: CLEAR_INK })), ...copy];
 
   /* right half only: on a wide screen the margin left of the copy is free
      too, but the composition reads left to right — words, then the globe */

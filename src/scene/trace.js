@@ -2,11 +2,10 @@
    is in, a packet leaves the globe, arcs down to the first hop and lands on
    it, and only then does the trace start drawing.
 
-   It is a DOM element rather than part of the WebGL scene. The canvas sits
-   under the page, and the traceroute carries a scrim (style.css) that would
-   swallow anything drawn under it — so a packet in the canvas would vanish
-   just before it lands. Inside #hops at z-index -1 the dot is painted above
-   every scrim and below every letter.
+   It is a DOM element rather than part of the WebGL scene. The canvas dims
+   itself under text (dim.js), the traceroute included, so a packet drawn in
+   it would fade just before it lands. Inside #hops at z-index -1 the dot is
+   painted above the canvas and below every letter, at full brightness.
 
    Robust to resizing and scrolling mid-flight: both ends are read again every
    frame — the start from the globe's current place on screen, the end from

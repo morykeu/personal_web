@@ -9,9 +9,8 @@ import { createBeacon } from './beacon.js';
 import { createStars } from './stars.js';
 import { createTrace } from './trace.js';
 import { heroPlacement } from './layout.js';
-import { createCopyMask } from './mask.js';
+import { createDim } from './dim.js';
 import { createLens, tune } from './lens.js';
-import { createBudget } from './budget.js';
 import { createQuality } from './quality.js';
 import { fine, pointer, flags } from '../motion/pointer.js';
 import { states, forTouch, ORDER, KEYS } from './states.js';
@@ -64,8 +63,7 @@ function lensColors() {
     violet: mix(violet, violet, 0),
     magenta: mix(magenta, magenta, 0),
     lilac: mix(violet, text, 0.45),
-    disc: mix(ink, violet, 0.05),
-    ink: mix(ink, ink, 0)
+    disc: mix(ink, violet, 0.05)
   };
 }
 
@@ -108,16 +106,23 @@ export async function initScene(scroll, { canvas, gl }) {
   scene.add(...beacon.sprites);
   const stars = createStars({ colors, glow, count: lite ? 900 : 1800 });
   scene.add(stars.points);
-  const mask = createCopyMask();
-  scene.traverse(o => { if (o.material) mask.apply(o.material); });
+  /* every material dims itself softly under text (dim.js); the bright ones —
+     points and sprites, the glowing arcs of the packets and the project
+     links, the orbits — twice over */
+  const dim = createDim();
+  const bright = new Set();
+  network.group.traverse(o => bright.add(o));
+  links.group.traverse(o => bright.add(o));
+  orbits.group.traverse(o => bright.add(o));
+  scene.traverse(o => { if (o.material) dim.apply(o.material, bright.has(o) || o.isPoints || o.isSprite); });
   /* The lens and the pull towards the mouse exist only with a mouse. If the
-     lens cannot be set up, nothing is lost: the CSS scrims stay on.
+     lens cannot be set up, nothing is lost but the drop.
      passes.lens is ?debug=1's switch for the whole full-screen pass. */
   let lens = null;
   const passes = { lens: true };
   if (fine && !lite) {
     try {
-      lens = createLens({ renderer, budget: createBudget(), colors: lensColors() });
+      lens = createLens({ renderer, dim, colors: lensColors() });
     } catch (err) {
       console.warn('[lens] disabled:', err);
     }
@@ -159,20 +164,19 @@ export async function initScene(scroll, { canvas, gl }) {
   let W = 0, H = 0, hero = null, scale = 1, fovK = 1;
 
   const header = document.querySelector('header');
-  let bar = null;
+  let headerBottom = 0;
 
   /* measured hero placement → the hero's vector, in the same viewport
      fractions every other state is written in */
   function fit() {
     hero = heroPlacement(W, H);
-    /* the header band; PAD widens it by 4px, so it is drawn 4px short */
-    bar = { l: -100, r: W + 100, t: -100, b: header.getBoundingClientRect().height - 4 };
+    headerBottom = header.getBoundingClientRect().height;
     const v = vectors.hero;
     v[IX.x] = hero.cx / W;
     v[IX.y] = hero.cy / H;
     v[IX.size] = hero.d / Math.min(W, H);
     v[IX.bright] = heroBright * (hero.mode === 'beside' ? 1 : BEHIND);
-    /* the headline only needs its own scrim when the globe is under it */
+    /* the mode where the globe is under the copy (style.css keys on it) */
     root.classList.toggle('scene-behind', hero.mode !== 'beside');
   }
 
@@ -283,10 +287,8 @@ export async function initScene(scroll, { canvas, gl }) {
     if (trace && revealedAt >= 0) {
       trace.update(dt, time - revealedAt, { cx: S.x * W, cy: S.y * H, r: (S.size * Math.min(W, H)) / 2 });
     }
-    mask.update({ page: hero.ink, fixed: [bar] }, window.scrollY, H, renderer.getPixelRatio());
+    dim.update(window.scrollY, H, renderer.getPixelRatio(), headerBottom);
     renderer.render(scene, camera);
-    /* every frame, not only while the drop is shown: with a mouse the pass
-       is also what keeps the text readable (budget.js) */
     if (lens && passes.lens && revealedAt >= 0) { lens.update(dt, W, H); lens.render(); }
   }
 
@@ -363,7 +365,7 @@ export async function initScene(scroll, { canvas, gl }) {
       jump: jump && jump.to,
       globe: `${Math.round(S.x * W)}, ${Math.round(S.y * H)}  ⌀${Math.round(S.size * Math.min(W, H))}px`,
       mode: `${lite ? 'touch' : 'pointer'} · hero ${hero.mode} · fov ${S.fov.toFixed(0)}`,
-      lens: !lens ? 'off (no mouse) · CSS scrims' : !passes.lens ? 'pass off · CSS scrims' : (lens.visible ? 'on' : 'hidden') + ' · contrast budget on',
+      lens: !lens ? 'off (no mouse)' : !passes.lens ? 'pass off' : lens.visible ? 'on' : 'hidden',
       cpu
     };
   };

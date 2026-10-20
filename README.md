@@ -78,9 +78,8 @@ links.js    zvýrazněná spojení v sekci projektů
 orbits.js   oběžné dráhy se satelity
 beacon.js   paket od uzlu „já“ k divákovi v kontaktu
 trace.js    paket z glóbu na první hop traceroute v hero
-mask.js     díra ve scéně pod nadpisem hero a pod hlavičkou (kontrast)
 lens.js     čočka pod kurzorem: tmavá kapka s lomem a perleťovým leskem
-budget.js   rozpočet kontrastu: jak jasné smí být pozadí pod každým řádkem textu
+dim.js      měkké ztlumení scény pod textem (rozmazaná maska textových bloků)
 quality.js  adaptivní kvalita: pixel ratio a hlavička podle měřeného frame time
 stars.js    hvězdy
 glow.js     textury pro body, sprity a pulz
@@ -103,9 +102,9 @@ dělalo dvakrát.
 
 Three.js je za dynamickým importem, takže si ho první dva řádky tabulky
 vůbec nestáhnou. Ostatním se začne stahovat až po prvním vykreslení
-stránky (dva `requestAnimationFrame`), takže nadpis na scénu nikdy nečeká. Když scéna běží, má `<html>` třídu `.has-scene` — podle ní
-se schovají glow divy a za text se přidá tmavá clona, která drží kontrast
-nad 4,5 : 1.
+stránky (dva `requestAnimationFrame`), takže nadpis na scénu nikdy nečeká.
+Když scéna běží, má `<html>` třídu `.has-scene` — podle ní se schovají glow
+divy a text dostane tmavou auru (viz *Kontrast nad scénou*).
 
 Barvy scéna čte z CSS proměnných `--violet`, `--magenta`, `--text` a `--ink`,
 takže změna palety v `:root` se do ní propíše sama.
@@ -153,7 +152,8 @@ počítaný jen po tikách tam trval 12 s.
 
 Když scéna běží, vyletí po odkrytí z glóbu paket, doletí na první uzel
 traceroute a teprve pak se trasa začne kreslit. Paket je prvek stránky, ne
-scény — za traceroute je clona, která by ho v canvasu pohltila.
+scény — scéna se pod traceroute tlumí a paket by v ní před přistáním
+vybledl.
 
 ### Čočka pod kurzorem
 
@@ -178,17 +178,33 @@ textury a jeden průchod přes celou plochu canvas překreslí — s kapkou navr
 (Render target to není schválně: three do něj kreslí v lineárních barvách
 a aditivní záře scény by pak vypadaly jinak.)
 
-**Kontrast.** Aby byla kapka vidět i pod textem, nahradí s myší CSS clony
-(`.has-lens`) *rozpočet kontrastu* (`src/scene/budget.js`): pro každý řádek
-textu se z jeho skutečné barvy spočítá, jak jasné smí být pozadí, aby
-zůstalo 4,7 : 1, a ten limit se nakreslí do malé textury. Měkký okraj
-kolem řádku tvoří soustředné obdélníky v násobcích limitu — ne
-`ctx.filter: blur()`, ten Safari neumí. Stejný průchod
-pak pod textem udělá canvas neprůhledný (zakryje i CSS mřížku) a ořízne jas
-— scény i kapky — přesně na limit. Šedý text tak snese skoro jen tmu,
-bílý nadpis mnohem víc. Odkaz pod myší, který mění barvu, se přepočítává
-každý snímek. Kapka v hlavičce se kreslí do malé kopie uvnitř hlavičky,
-nad závojem a pod jejím textem. Na dotyku a bez čočky zůstávají clony.
+Pod textem se kapka tlumí stejně jako scéna (viz *Kontrast nad scénou*),
+jednou, takže její okraj je vidět i pod textem.
+Kapka v hlavičce se kreslí do malé kopie uvnitř hlavičky, nad závojem a pod
+jejím textem.
+
+### Kontrast nad scénou
+
+Žádné clony ani vyříznutá místa — glóbus i čočka jsou vidět všude, pod
+textem jen ztlumené. Drží to dvě věci dohromady:
+
+- **Aura u písmen** (`style.css`, `.has-scene .wrap`): několik vrstev
+  `text-shadow` v barvě `--ink`, těsné vrstvy dělají pod písmeny a hned
+  vedle nich tmavý podklad, širší se rozplynou. Nad prázdným pozadím není
+  vidět. SVG text (popisky traceroute) `text-shadow` všude neumí, ten má
+  obrys v `--ink` pod výplní (`paint-order: stroke`).
+- **Měkké ztlumení scény** (`src/scene/dim.js`): rozmazaná maska textových
+  bloků v nízkém rozlišení (1 texel = 8 px) přes celý dokument. Shadery ji
+  čtou podle pozice na stránce, takže scroll nestojí nic; překreslí se jen
+  při resize, přepnutí jazyka, načtení fontů a po dojetí sekce. Jas pod
+  textem se odvozuje z barvy řádku: pod bílým textem 50 %, pod fialovým
+  a magentovým ~40 %, pod šedým (`--muted`) 15 % — šedý snese nejmíň.
+  Nejjasnější části scény (body, sprity, oblouky paketů a spojení, orbity)
+  se tlumí dvakrát (na druhou), drátěný glóbus, jeho tělo a čočka jednou. Pod hlavičkou je pás na 60 % s měkkým přechodem.
+
+Ověřené měřením na pixelech pod písmeny a do 2 px kolem nich (stránka
+zmrazená, pozadí s aurou proti výplni každé barvy textu zvlášť), CZ i EN,
+1920, 1440 a 1024 px s čočkou pod textem a 390 a 360 px na dotyku.
 
 ### Adaptivní kvalita
 
@@ -225,7 +241,7 @@ Pod tím jsou přepínače pro hledání, co brzdí: pixel ratio (auto / 1 / 1,2
 1,5), blur hlavičky a plynulý scroll Lenisu (vypnutý = kolečko scrolluje
 nativně) — oba jen s pevným pixel ratio, v auto je řídí `quality.js` a řádek
 `quality` ukáže i strop 30 FPS —, a celý
-full-screen průchod čočky (vypnutý = vrátí se CSS clony). Prohlížeč, který
+full-screen průchod čočky (vypnutý = bez kapky). Prohlížeč, který
 omezuje animace na 30 FPS (Safari v úsporném režimu), se v přehledu ukáže
 jako stálých ~33 ms bez ohledu na přepínače. Tlačítko „measure 5 s“ změří
 totéž za pět sekund (během nich se scrolluje) a drží posledních šest měření

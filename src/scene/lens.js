@@ -23,10 +23,9 @@ import { pointer, flags } from '../motion/pointer.js';
    three renders those in linear colour and the canvas in sRGB, and the
    scene's additive glows would change look the moment the pass came on.)
 
-   The same pass enforces the contrast budget (budget.js): with a mouse the
-   CSS scrims are switched off (.has-lens), so the drop can be seen over
-   text too, and the pass dims whatever sits under a line of text — scene or
-   drop — to what that text can take.
+   Under text the drop dims with the scene (dim.js) — the same soft low spot
+   in brightness, never a cut — and the letters keep their contrast from their
+   own dark aura (style.css).
 
    The header is above the canvas, behind a blurred veil, and would hide the
    drop. So while the drop is over it, the drop is copied into a small canvas
@@ -48,8 +47,7 @@ const IDLE_AFTER = 1.4;        // s
 const STRETCH = 0.45;          // the most it lengthens along its path
 const PULSE = 0.6;             // s a click ring runs
 
-export function createLens({ renderer, budget, colors }) {
-  const root = document.documentElement;
+export function createLens({ renderer, dim, colors }) {
   const header = document.querySelector('header');
   const canvas = renderer.domElement;
 
@@ -60,8 +58,8 @@ export function createLens({ renderer, budget, colors }) {
     return new Vector3(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255);
   };
   const uniforms = {
+    ...dim.uniforms,
     tScene: { value: null },
-    tBudget: { value: budget.texture },
     uRes: { value: new Vector2() },
     uPos: { value: new Vector2() },
     uRadius: { value: 0 },
@@ -75,7 +73,6 @@ export function createLens({ renderer, budget, colors }) {
     uDir: { value: new Vector2(1, 0) },
     uPulse: { value: -1 },
     cDisc: { value: srgb(colors.disc) },
-    cInk: { value: srgb(colors.ink) },
     cViolet: { value: srgb(colors.violet) },
     cMagenta: { value: srgb(colors.magenta) },
     cLilac: { value: srgb(colors.lilac) }
@@ -90,7 +87,6 @@ export function createLens({ renderer, budget, colors }) {
     /* everything here is in sRGB, like the canvas the pixels came from */
     fragmentShader: /* glsl */`
       uniform sampler2D tScene;
-      uniform sampler2D tBudget;
       uniform vec2 uRes;
       uniform vec2 uPos;
       uniform float uRadius;
@@ -104,21 +100,10 @@ export function createLens({ renderer, budget, colors }) {
       uniform vec2 uDir;
       uniform float uPulse;
       uniform vec3 cDisc;
-      uniform vec3 cInk;
       uniform vec3 cViolet;
       uniform vec3 cMagenta;
       uniform vec3 cLilac;
-
-      /* the exact sRGB curve: a plain 2.2 power reads dark colours up to a
-         third too dark, and the budget lives in exactly that range */
-      vec3 toLinear(vec3 c) {
-        c = max(c, 0.0);
-        return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c));
-      }
-      vec3 toSrgb(vec3 l) {
-        l = max(l, 0.0);
-        return mix(l * 12.92, 1.055 * pow(l, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, l));
-      }
+      ${dim.chunk}
 
       /* the film: violet → magenta → lilac and round again, never a rainbow */
       vec3 film(float t) {
@@ -157,7 +142,8 @@ export function createLens({ renderer, budget, colors }) {
             float red = texture2D(tScene, (at + off * split) / uRes).r;
             float blue = texture2D(tScene, (at - off * split) / uRes).b;
             /* dark glass, the refracted scene seen through it */
-            vec3 glass = cDisc * (1.0 - sg.a * 0.6) + vec3(red, sg.g, blue) * 0.72;
+            vec3 tint = cDisc * (1.0 - sg.a * 0.6);
+            vec3 glass = tint + vec3(red, sg.g, blue) * 0.72;
             /* thin film: strongest at the rim, dark in the middle; the hue runs
                round the rim, drifts with time and leans into the direction of
                travel */
@@ -172,25 +158,15 @@ export function createLens({ renderer, budget, colors }) {
             /* a soft pearly highlight, up and to the left */
             float spec = pow(max(dot(vec3(n.x, n.y, nz), normalize(vec3(-0.45, 0.55, 0.7))), 0.0), 16.0);
             vec3 drop = glass + sheen * 0.85 + cLilac * spec * 0.3 * uSheen;
-            /* the drop is opaque; the canvas holds premultiplied colour */
-            col.rgb = mix(col.rgb, drop, disc) + cMagenta * ring * 0.45;
-            col.a = min(col.a + (1.0 - col.a) * disc + ring * 0.45, 1.0);
+            /* the drop is opaque; the canvas holds premultiplied colour. Under
+               text it dims like the scene does — once, so its rim still shows
+               under the copy; the aura at the letters does the rest */
+            float f = kmDim();
+            drop *= f;
+            col.rgb = mix(col.rgb, drop, disc) + cMagenta * ring * 0.45 * f;
+            col.a = min(col.a + (1.0 - col.a) * disc + ring * 0.45 * f, 1.0);
           }
         }
-
-        /* The contrast budget: under text, no brighter than the text allows.
-           Under text the canvas also turns opaque, in the page colour: the
-           CSS grid beneath it crosses behind the copy otherwise, and where
-           two grid lines meet, muted text falls under 4.5:1 (the scrims used
-           to cover that as well). */
-        float v = texture2D(tBudget, p / uRes).r;
-        float cover = clamp((1.0 - v) * 3.0, 0.0, 1.0);
-        col.rgb += cInk * (1.0 - col.a) * cover;
-        col.a += (1.0 - col.a) * cover;
-        float lmax = v * v;
-        vec3 lin = toLinear(col.rgb);
-        float L = dot(lin, vec3(0.2126, 0.7152, 0.0722));
-        if (L > lmax) col.rgb = toSrgb(lin * (lmax / L));
         gl_FragColor = col;
       }`
   });
@@ -233,8 +209,6 @@ export function createLens({ renderer, budget, colors }) {
       copy.height = Math.round(h * pr);
     }
   }
-
-  root.classList.add('has-lens');
 
   return {
     get visible() { return g > 0.01; },
@@ -294,7 +268,6 @@ export function createLens({ renderer, budget, colors }) {
       uniforms.uPhase.value = phase;
       uniforms.uDir.value.copy(dir);
       uniforms.uPulse.value = pulse;
-      budget.update(W, H);
     },
     /* right after the scene was drawn to the canvas */
     render() {
@@ -330,12 +303,11 @@ export function createLens({ renderer, budget, colors }) {
         copied = { x: bx - 2, y: by - 2, w: bs + 4, h: bs + 4 };
       }
     },
-    /* ?debug=1 can switch the whole pass off: the CSS scrims come back
-       (they are keyed to .has-lens) and the drop's copy in the header goes */
+    /* ?debug=1 can switch the whole pass off; the drop's copy in the
+       header goes with it */
     set active(on) {
-      root.classList.toggle('has-lens', on);
       if (!on && copied) { cctx.clearRect(copied.x, copied.y, copied.w, copied.h); copied = null; }
     },
-    dispose() { root.classList.remove('has-lens'); }
+    dispose() { copy.remove(); }
   };
 }

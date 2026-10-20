@@ -102,9 +102,6 @@
      22px padding. The section nav is shorter than the switcher, so adding it
      did not change this. Sections offset their anchor targets by it. */
   --header-h:72px;
-  /* Dark halo behind text while the 3D scene runs (see "scene" below). At .9 a
-     pure-white pixel behind it still leaves --muted text at 4.65:1. */
-  --scrim:rgba(5,5,10,.9);
 }
 *{box-sizing:border-box}
 /* Lenis animates scrolling itself and fights a second smoother, so CSS smooth
@@ -150,54 +147,36 @@ body::before{
 }
 .scene.is-on{opacity:1}
 
-/* Text scrim. Stars cover the whole viewport and the globe can sit behind copy,
-   so every piece of text gets a dark halo of the page colour: invisible over the
-   plain background, but it keeps anything bright behind the text away from it.
-   The halo reaches 10 + 18 + 30 = 58px past its box (inset, spread, blur);
-   layout.js keeps the hero globe further than that from the hero copy.
-   z-index:-1 puts it under the text but over the canvas — the canvas is outside
-   .wrap, whose stacking context everything here paints in.
-
-   The boxes are the text's own, not its containers': a row, a list or an
-   eyebrow spans the full width while its words take a part of it, and a scrim
-   on the container would black out the globe wherever it sits beside the
-   copy. The timeline's title is a block, so it is shrunk to its words. Every
-   one of these is either inline-level, capped in ch, or a grid cell.
-
-   The hero headline is left out while the globe sits beside it: its 17-character box
-   runs well past its last letter, and a scrim on that box would black out the
-   very space the globe uses. Instead the scene itself is cut away under each
-   line of the headline (src/scene/mask.js). .scene-behind (set by scene.js) is
-   the mode where the globe is under the copy instead, and then the headline
-   gets a scrim too. */
 /* scroll.js focuses a section (or <main>, from the skip link) after an
    anchor jump so the next Tab starts there, as a native jump would; the
    target itself is not a control */
 :is(main,section)[tabindex="-1"]:focus{outline:none}
 
-.has-scene .tl .body>strong{width:fit-content}
+/* Text over the scene. Stars cover the whole window and the globe and the
+   lens can pass behind any copy, so while the scene runs every piece of text
+   carries a dark aura in the page colour: tight shadows that make the ground
+   right at the letters solid, wider ones that fade out. Over the plain
+   background it is invisible; over the brightest part of the scene it keeps
+   every glyph at 4.5:1 or more (measured on the pixels under and around the
+   letters, both languages, desktop with the lens under the text, and phone).
+   Under the text the scene also dims itself, softly and without an edge
+   (src/scene/dim.js), so the aura never has to hold off a full-brightness
+   globe. Nothing is boxed in and nothing is cut away. */
+.has-scene .wrap{
+  text-shadow:0 0 1px var(--ink),0 0 2px var(--ink),0 0 3px var(--ink),0 0 4px var(--ink),0 0 8px var(--ink),0 0 18px rgba(5,5,10,.8);
+}
+/* buttons do not inherit it: the UA stylesheet resets their text-shadow */
+.has-scene .wrap button{text-shadow:inherit}
+/* SVG text takes no text-shadow in every browser; the hop labels get the
+   same ground from an outline in the page colour, painted under the fill */
+.has-scene :is(.hoplbl,.hopms){paint-order:stroke;stroke:var(--ink);stroke-width:6px;stroke-linejoin:round}
 
+/* position:relative stays from the scrims these elements used to carry: the
+   trace packet is placed inside #hops, and nothing here should move */
 .has-scene :is(#hero .status,#hero .lede,#hero .hops,.eyebrow>span,.about p,.row h3,.row p,.row .repo,.spec li,.note,.tl .yr,.tl .body>*,.mailto,.links>*,footer>span),
 .has-scene.scene-behind #hero h1{
   position:relative;
 }
-/* The hands-on items draw their dash with ::before (below), so theirs is
-   the ::after — same layer, the dash stays. */
-.has-scene :is(#hero .status,#hero .lede,#hero .hops,.eyebrow>span,.about p,.row h3,.row p,.row .repo,.note,.tl .yr,.tl .body>*,.mailto,.links>*,footer>span)::before,
-.has-scene .spec li::after,
-.has-scene.scene-behind #hero h1::before{
-  content:"";position:absolute;inset:-6px -10px;z-index:-1;pointer-events:none;
-  border-radius:20px;background:var(--scrim);box-shadow:0 0 30px 18px var(--scrim);
-}
-
-/* With a mouse the lens (src/scene/lens.js) has to show over text as well,
-   so the scrims make way: the scene pass itself dims whatever is under a line
-   of text to what that line can take (src/scene/budget.js). .has-lens is set
-   only once that pass is in place; without it — touch, a failed lens — the
-   scrims above stay exactly as they are. */
-.has-lens :is(#hero .status,#hero .lede,#hero .hops,.eyebrow>span,.about p,.row h3,.row p,.row .repo,.note,.tl .yr,.tl .body>*,.mailto,.links>*,footer>span)::before,
-.has-lens .spec li::after,
-.has-lens.scene-behind #hero h1::before{content:none}
 
 /* The drop over the header: a copy of it, inside the header, above the
    veil and below the header's own text (lens.js draws it). */
@@ -205,7 +184,7 @@ body::before{
 
 /* The packet that flies from the globe to the first hop (src/scene/trace.js).
    Placed by transform from the top-left of #hops; z-index:-1 in .wrap's
-   stacking context paints it after the scrims above and before any text. */
+   stacking context paints it above the canvas and below any text. */
 .trace-packet{
   position:absolute;left:0;top:0;z-index:-1;pointer-events:none;
   width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;opacity:0;
@@ -258,10 +237,9 @@ body::before{
 }
 .has-motion :is(#work,#projects):not(.in) .row{opacity:0;translate:0 18px}
 
-/* Card sheen. On the rows it is the row's ::before at z-index -1: earlier in
-   the tree than the scrims behind the row's text (scene block above), so it
-   paints under them and can never brighten what is behind muted copy. Violet
-   at .11 over the page colour stays far below what muted text can take. */
+/* Card sheen. On the rows it is the row's ::before at z-index -1, under the
+   text and its aura (scene block above). Violet at .11 over the page colour
+   stays far below what muted text can take. */
 .has-motion .row.tilt{position:relative}
 .has-motion .row.tilt::before{
   content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:0;
@@ -272,9 +250,9 @@ body::before{
 
 /* Hands-on prints like terminal output: each item appears outright at its
    own moment (--i, --step and --delay come from reveal.js, which times the
-   caret by the same numbers). The items' ::before is their dash and ::after
-   their scrim, so their sheen is a background — the text here is --text, not
-   muted, and keeps over 4.5:1 with it. */
+   caret by the same numbers). The items' ::before is their dash, so their
+   sheen is a background — the text here is --text, not muted, and keeps
+   over 4.5:1 with it. */
 @property --sheen{syntax:'<number>';inherits:false;initial-value:0}
 .has-motion #handson{position:relative}
 .has-motion #handson .spec li{
