@@ -335,7 +335,7 @@ změny, které by s CSP mohly kolidovat, je potřeba ověřit na preview nasazen
 
 ## Nasazení
 
-Web běží na <https://krystofmoravec.vercel.app/> a nasazuje se automaticky
+Web běží na <https://krystofmoravec.cz/> (Cloudflare) a nasazuje se automaticky
 z GitHubu (repozitář `morykeu/personal_web`).
 
 - push do větve `main` → produkční nasazení
@@ -372,14 +372,16 @@ jako „Refused to load…".
 ### Při změně domény
 
 `<link rel="canonical">` a `og:url` v `<head>`, `public/sitemap.xml`
-a řádek `Sitemap:` v `public/robots.txt` obsahují produkční adresu natvrdo.
-Při přechodu na vlastní doménu je potřeba přepsat všechny čtyři najednou —
+a řádek `Sitemap:` v `public/robots.txt` obsahují produkční adresu natvrdo,
+stejně jako `og:image`, `twitter:image` a JSON-LD. Doména je navíc vepsaná
+přímo do náhledového obrázku (vpravo nahoře, viz níž). Při změně domény je
+potřeba přepsat všechno najednou —
 a vždy jako **absolutní** adresu včetně `https://` a koncového lomítka. Bez schématu
 si prohlížeč i vyhledávače hodnotu vyloží jako relativní cestu.
 
 ### Náhledový obrázek
 
-`public/assets/img/og.jpg` (1200×630 px) je to, co se zobrazí při sdílení
+`public/assets/img/og-2.jpg` (1200×630 px) je to, co se zobrazí při sdílení
 odkazu na LinkedInu, Facebooku, X nebo v Discordu. Je odkazovaný absolutní
 adresou z `og:image` a `twitter:image`.
 
