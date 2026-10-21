@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://krystofmoravec.vercel.app/sitemap.xml
+Sitemap: https://krystofmoravec.cz/sitemap.xml
