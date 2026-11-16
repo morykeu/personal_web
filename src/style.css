@@ -290,13 +290,30 @@ body::before{
 #loader{
   position:fixed;inset:0;z-index:100;background:var(--ink);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
-  transition:opacity .6s ease,visibility .6s;
+  transition:opacity .45s ease,visibility .45s;
 }
 #loader.done{opacity:0;visibility:hidden}
 #loader .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.34em;color:var(--muted);text-transform:uppercase}
 #loader .num{font-family:var(--mono);font-size:clamp(48px,11vw,96px);color:var(--violet);line-height:1;font-weight:500}
 #loader .bar{width:min(320px,60vw);height:1px;background:rgba(167,139,250,.18);position:relative;overflow:hidden}
 #loader .bar i{position:absolute;inset:0 100% 0 0;background:var(--magenta);transition:right .12s linear}
+
+/* ---------- failsafe ---------- */
+/* If app.js never arrives (dropped connection, blocked request) or throws on
+   the way, nothing takes the loader off and the sections stay at opacity 0 —
+   <noscript> only covers JavaScript being switched off. So every state the
+   script would have resolved also resolves by itself after 6 s. app.js sets
+   .js-ok on its last line, which cancels all of it long before that.
+   The delay on the hop marks is !important because each carries its own
+   inline animation-delay, and an inline style would otherwise win. */
+html:not(.js-ok) #loader{animation:failsafe-hide .4s 6s forwards}
+html:not(.js-ok) body.locked{animation:failsafe-scroll 0s 6s forwards}
+html:not(.js-ok) .rv{animation:failsafe-show .4s 6s forwards}
+html:not(.js-ok) .path{animation:draw .4s 6s forwards}
+html:not(.js-ok) :is(.node,.hoplbl,.hopms){animation:fadein .4s forwards;animation-delay:6s!important}
+@keyframes failsafe-hide{to{opacity:0;visibility:hidden}}
+@keyframes failsafe-scroll{to{overflow:auto}}
+@keyframes failsafe-show{to{opacity:1;transform:none}}
 
 /* ---------- shell ---------- */
 .wrap{position:relative;z-index:1}
@@ -365,13 +382,15 @@ header .mark b{color:var(--magenta);font-weight:500}
   .secnav{display:none}
 }
 .lang{display:flex;gap:2px;border:1px solid rgba(167,139,250,.24);border-radius:2px;overflow:hidden}
-.lang button{
-  background:none;border:0;cursor:pointer;padding:6px 11px;
-  font:inherit;letter-spacing:.2em;color:var(--muted);transition:.2s;
+/* Links, not buttons: each language has its own address (/ and /cs/), so the
+   switch works without JavaScript and a crawler can follow it. */
+.lang a{
+  display:block;padding:6px 11px;text-decoration:none;
+  letter-spacing:.2em;color:var(--muted);transition:.2s;
 }
-.lang button:hover{color:var(--text)}
-.lang button[aria-pressed="true"]{background:rgba(167,139,250,.14);color:var(--violet)}
-.lang button:focus-visible{outline:2px solid var(--magenta);outline-offset:-2px}
+.lang a:hover{color:var(--text)}
+.lang a[aria-current]{background:rgba(167,139,250,.14);color:var(--violet)}
+.lang a:focus-visible{outline:2px solid var(--magenta);outline-offset:-2px}
 
 /* scroll-margin-top, not padding: it moves only where an anchor jump lands,
    leaving the layout alone, so the header never covers a section's top edge. */

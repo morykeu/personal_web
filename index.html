@@ -4,20 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>Kryštof Moravec — networks, security, AI</title>
-<meta name="description" content="Kryštof Moravec — networking and cybersecurity student from Ostrava, now at Brno University of Technology. Cisco, FortiGate, fiber optics and applied AI.">
+<!-- Český titulek a popisy (data-cs, data-cs-content) použije build pro /cs/ —
+     viz vite.config.js. Titulek navíc přepíná i app.js spolu s ostatním textem. -->
+<title data-cs="Kryštof Moravec — sítě, bezpečnost, AI" data-en="Kryštof Moravec — networks, security, AI">Kryštof Moravec — networks, security, AI</title>
+<meta name="description" content="Kryštof Moravec — networking and cybersecurity student from Ostrava, now at Brno University of Technology. Cisco, FortiGate, fiber optics and applied AI." data-cs-content="Kryštof Moravec — student sítí a kybernetické bezpečnosti z Ostravy, teď na VUT v Brně. Cisco, FortiGate, optika a praktické využití AI.">
 <meta name="author" content="Kryštof Moravec">
 <meta name="theme-color" content="#05050a">
 
 <!-- Musí být absolutní adresa včetně https:// a koncového lomítka.
      Bez schématu se to bere jako relativní cesta. -->
 <link rel="canonical" href="https://krystofmoravec.cz/">
+<!-- Dvě jazykové verze na dvou adresách. Stejná trojice je na obou stránkách;
+     canonical, og:url a og:locale pro /cs/ přepisuje build. -->
+<link rel="alternate" hreflang="en" href="https://krystofmoravec.cz/">
+<link rel="alternate" hreflang="cs" href="https://krystofmoravec.cz/cs/">
+<link rel="alternate" hreflang="x-default" href="https://krystofmoravec.cz/">
 
-<meta property="og:title" content="Kryštof Moravec — networks, security, AI">
-<meta property="og:description" content="Networking and cybersecurity student from Ostrava, now at Brno University of Technology. Cisco, FortiGate, fiber optics and applied AI.">
+<meta property="og:title" content="Kryštof Moravec — networks, security, AI" data-cs-content="Kryštof Moravec — sítě, bezpečnost, AI">
+<meta property="og:description" content="Networking and cybersecurity student from Ostrava, now at Brno University of Technology. Cisco, FortiGate, fiber optics and applied AI." data-cs-content="Student sítí a kybernetické bezpečnosti z Ostravy, teď na VUT v Brně. Cisco, FortiGate, optika a praktické využití AI.">
 <meta property="og:type" content="website">
-<!-- Stránka i sdílecí metadata jsou anglicky (<html lang="en">); čeština je
-     volitelná přes přepínač v hlavičce, proto zůstává jako alternativa. -->
+<!-- Tahle stránka (/) je anglická, česká je na /cs/. Build tam obě hodnoty prohodí. -->
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="cs_CZ">
 <meta property="og:site_name" content="Kryštof Moravec">
@@ -27,13 +33,13 @@
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Kryštof Moravec — networks, security, AI">
+<meta property="og:image:alt" content="Kryštof Moravec — networks, security, AI" data-cs-content="Kryštof Moravec — sítě, bezpečnost, AI">
 
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Kryštof Moravec — networks, security, AI">
-<meta name="twitter:description" content="Networking and cybersecurity student from Ostrava, now at Brno University of Technology. Cisco, FortiGate, fiber optics and applied AI.">
+<meta name="twitter:title" content="Kryštof Moravec — networks, security, AI" data-cs-content="Kryštof Moravec — sítě, bezpečnost, AI">
+<meta name="twitter:description" content="Networking and cybersecurity student from Ostrava, now at Brno University of Technology. Cisco, FortiGate, fiber optics and applied AI." data-cs-content="Student sítí a kybernetické bezpečnosti z Ostravy, teď na VUT v Brně. Cisco, FortiGate, optika a praktické využití AI.">
 <meta name="twitter:image" content="https://krystofmoravec.cz/assets/img/og-2.jpg">
-<meta name="twitter:image:alt" content="Kryštof Moravec — networks, security, AI">
+<meta name="twitter:image:alt" content="Kryštof Moravec — networks, security, AI" data-cs-content="Kryštof Moravec — sítě, bezpečnost, AI">
 
 <!-- favicon: hranatá závorka + tečka, stejný motiv jako značka KM. v hlavičce -->
 <link rel="icon" href="/favicon.ico" sizes="48x48">
@@ -157,8 +163,8 @@
   </nav>
 
   <div class="lang" role="group" aria-label="Language selection" data-cs-aria="Volba jazyka" data-en-aria="Language selection">
-    <button type="button" data-lang="cs" aria-pressed="false">CS</button>
-    <button type="button" data-lang="en" aria-pressed="true">EN</button>
+    <a href="/cs/" data-lang="cs" hreflang="cs">CS</a>
+    <a href="/" data-lang="en" hreflang="en" aria-current="true">EN</a>
   </div>
 </header>
 
@@ -304,7 +310,7 @@
       <h3 data-cs="Tahle stránka" data-en="This site">This site</h3>
       <div>
         <p data-cs="Vite, Three.js, GSAP a Lenis, žádný framework. Dvojjazyčná, čitelná i bez JavaScriptu, nic nestahuje z externích CDN a Content Security Policy nepovolí žádný inline skript." data-en="Vite, Three.js, GSAP and Lenis, no framework. Bilingual, fully readable without JavaScript, nothing from a CDN, and the Content Security Policy allows no inline scripts.">Vite, Three.js, GSAP and Lenis, no framework. Bilingual, fully readable without JavaScript, nothing from a CDN, and the Content Security Policy allows no inline scripts.</p>
-        <p class="stack" data-cs="HTML · CSS · JavaScript · Vercel" data-en="HTML · CSS · JavaScript · Vercel">HTML · CSS · JavaScript · Vercel</p>
+        <p class="stack" data-cs="HTML · CSS · JavaScript · Cloudflare Pages" data-en="HTML · CSS · JavaScript · Cloudflare Pages">HTML · CSS · JavaScript · Cloudflare Pages</p>
         <a class="repo" href="https://github.com/morykeu/personal_web" target="_blank" rel="noopener" data-cs="github.com/morykeu/personal_web" data-en="github.com/morykeu/personal_web">github.com/morykeu/personal_web</a>
       </div>
     </div>

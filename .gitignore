@@ -59,7 +59,6 @@ build/
 .env
 .env.*
 !.env.example
-.vercel/
 
 # ---------- logy a dočasné soubory ----------
 *.log

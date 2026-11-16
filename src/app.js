@@ -2,8 +2,10 @@
   "use strict";
 
   var STORE_KEY = "km.lang";
-  var TITLE = {cs:"Kryštof Moravec — sítě, bezpečnost, AI", en:"Kryštof Moravec — networks, security, AI"};
-  var buttons = document.querySelectorAll(".lang button");
+  /* Each language has its own address, so both can be indexed: the build
+     writes a Czech copy of the page to /cs/ (vite.config.js). */
+  var PATH = {cs:"/cs/", en:"/"};
+  var switches = document.querySelectorAll(".lang a");
 
   /* ---------- language ---------- */
 
@@ -15,17 +17,30 @@
     try { localStorage.setItem(STORE_KEY, lang); } catch(e){}
   }
 
-  /* saved choice wins; otherwise English for everyone, regardless of the
-     browser's own language — Czech is only ever reached via the CS button */
+  function onCzechPath(){
+    return location.pathname.replace(/\/+$/, "") === "/cs";
+  }
+
+  /* /cs/ is Czech, whatever was saved — the address was asked for by name.
+     On / the saved choice wins; otherwise English for everyone, regardless of
+     the browser's own language. */
   function initialLang(){
+    if (onCzechPath()) return "cs";
     var saved = stored();
     if (saved === "cs" || saved === "en") return saved;
     return "en";
   }
 
+  /* Keeps the address in step with the language without a reload; query and
+     hash (?debug=1, #contact) stay where they are. */
+  function syncPath(lang){
+    if (onCzechPath() === (lang === "cs")) return;
+    try { history.replaceState(null, "", PATH[lang] + location.search + location.hash); } catch(e){}
+  }
+
   function setLang(lang, persist){
     document.documentElement.lang = lang;
-    document.title = TITLE[lang];
+    /* <title> carries data-cs / data-en like everything else, so it is swapped here too */
     document.querySelectorAll("[data-cs]").forEach(function(el){
       var v = el.getAttribute("data-" + lang);
       if (v !== null) el.innerHTML = v;
@@ -34,9 +49,11 @@
       var v = el.getAttribute("data-" + lang + "-aria");
       if (v !== null) el.setAttribute("aria-label", v);
     });
-    buttons.forEach(function(b){
-      b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
+    switches.forEach(function(a){
+      if (a.dataset.lang === lang) a.setAttribute("aria-current", "true");
+      else a.removeAttribute("aria-current");
     });
+    syncPath(lang);
     if (persist) store(lang);
     /* Anything outside this file that depends on the copy (text lengths change
        layout) listens here. Fires on every switch, including the initial one;
@@ -46,8 +63,16 @@
 
   /* runs while the loader still covers the page, so a cs → en swap never flashes */
   setLang(initialLang(), false);
-  buttons.forEach(function(b){
-    b.addEventListener("click", function(){ setLang(b.dataset.lang, true); });
+  /* The switch is a pair of real links (/cs/ and /), which is what works
+     without JavaScript and what a crawler follows. With JavaScript the copy is
+     swapped in place instead, so the scroll position survives. A click meant
+     for a new tab or window is left to the browser. */
+  switches.forEach(function(a){
+    a.addEventListener("click", function(e){
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+      e.preventDefault();
+      setLang(a.dataset.lang, true);
+    });
   });
 
   /* ---------- loader: counts up, then hands off to the trace animation ---------- */
@@ -85,23 +110,26 @@
   else {
     /* The count is random, but never behind the clock. A background tab runs
        timers at most once a second, and a count made only of ticks took ten
-       seconds there; this way it ends one tick after COUNT_MS at worst. */
-    var COUNT_MS = 1100;
+       seconds there; this way it ends one tick after COUNT_MS at worst.
+       The whole loader is short on purpose: the page itself is ready in a
+       fraction of a second, so this is an intro, not a wait — about 0.8 s
+       when the scene is ready in time, 1.4 s at worst (it used to be 2.6 s). */
+    var COUNT_MS = 650;
     var n = 0, t0 = Date.now();
     var t = setInterval(function(){
-      n = Math.max(n + Math.random() * 13 + 4, (Date.now() - t0) / COUNT_MS * 100);
+      n = Math.max(n + Math.random() * 16 + 8, (Date.now() - t0) / COUNT_MS * 100);
       if (n >= 100){
         n = 100;
         clearInterval(t);
         /* A 3D scene still compiling its shaders (src/scene/main.js) gets up to
-           1.2 s more under the loader; past that it fades in after the reveal. */
-        waitFor(root.classList.contains("scene-pending"), "km:scene", 1200, function(){
-          setTimeout(finish, 320);
+           0.6 s more under the loader; past that it fades in after the reveal. */
+        waitFor(root.classList.contains("scene-pending"), "km:scene", 600, function(){
+          setTimeout(finish, 150);
         });
       }
       pct.textContent = Math.floor(n) + "%";
       fill.style.right = (100 - n) + "%";
-    }, 90);
+    }, 60);
   }
 
   /* ---------- scroll reveals ---------- */
@@ -177,4 +205,9 @@
       }, {threshold:[0, 0.99], rootMargin:"0px 0px 4px 0px"}).observe(footer);
     }
   }
+
+  /* Last line on purpose: it stands down the CSS failsafe (style.css, "failsafe"),
+     which uncovers the page by itself if this file never loads or throws on
+     the way here. */
+  root.classList.add("js-ok");
 })();
