@@ -29,7 +29,7 @@ který prohlížeč nespouští.
 
 ```
 index.html            obsah stránky, meta tagy, JSON-LD, favicon jako inline SVG
-vercel.json           build pro Vercel, bezpečnostní hlavičky, cache pro fonty a assety
+vite.config.js        build; po něm vygeneruje českou stránku dist/cs/index.html
 package.json          závislosti a skripty (dev / build / preview)
 src/style.css         veškeré styly včetně @font-face
 src/app.js            přepínač jazyka, úvodní loader, odhalování sekcí, navigace
@@ -37,8 +37,9 @@ src/scene/            volitelná 3D scéna a plynulý scroll (viz níž)
 src/motion/           mikroanimace v sekcích (viz níž)
 public/assets/fonts/  Space Grotesk a JetBrains Mono (woff2)
 public/assets/img/    náhledový obrázek pro sdílení
+public/_headers       bezpečnostní hlavičky a cache pro Cloudflare Pages
 public/robots.txt     pro vyhledávače, odkazuje na sitemapu
-public/sitemap.xml    jediná adresa webu
+public/sitemap.xml    obě jazykové verze (/ a /cs/) s hreflang
 ```
 
 `src/` Vite zpracuje a výsledné soubory pojmenuje hashem. `public/` kopíruje
@@ -47,8 +48,32 @@ leží tam, protože je odkazují pevné adresy (preload v `<head>` a absolutní
 `og:image`).
 
 Texty obou jazykových verzí jsou přímo v `index.html` v atributech `data-cs` a `data-en`.
-Přepínač jazyka je jen prohodí — druhá stránka ani překladový soubor neexistuje.
-Když se tedy něco upravuje, je potřeba upravit **obě** varianty textu.
+Překladový soubor neexistuje. Když se tedy něco upravuje, je potřeba upravit
+**obě** varianty textu — a u anglické i samotný obsah prvku, který se s `data-en`
+musí shodovat (jinak build spadne, viz níž).
+
+### Dvě jazykové verze, dvě adresy
+
+Angličtina je na `/`, čeština na `/cs/`. Zdroj je pořád jeden: po buildu vezme
+plugin ve `vite.config.js` hotový `dist/index.html` a zapíše z něj
+`dist/cs/index.html`, kde je čeština přímo v HTML — obsah prvků z `data-cs`,
+`aria-label` z `data-cs-aria`, titulek a popisy z `data-cs-content`,
+`<html lang="cs">`, vlastní `canonical` a `og:url`. Vyhledávač tak českou
+verzi přečte bez JavaScriptu; dřív existovala jen po kliknutí na přepínač
+a indexovat nešla. Obě stránky na sebe odkazují přes `hreflang` (v `<head>`
+i v sitemapě).
+
+Přepínač v hlavičce jsou dva obyčejné odkazy (`/cs/` a `/`), takže funguje
+i bez JavaScriptu. S JavaScriptem `app.js` kliknutí zachytí, texty prohodí na
+místě (pozice scrollu zůstane) a adresu srovná přes `history.replaceState`.
+Jazyk při načtení: `/cs/` je vždy česky; na `/` platí uložená volba
+(`localStorage`, klíč `km.lang`), jinak angličtina.
+
+Plugin HTML neparsuje, jen ho prochází regulárním výrazem, a proto hlídá, že
+zdroj má tvar, se kterým počítá: když se obsah prvku liší od jeho `data-en`,
+nebo zmizí některá značka, kterou přepisuje (`canonical`, `og:locale`…), build
+skončí chybou a nasazení neproběhne. `npm run dev` stránku `/cs/` negeneruje —
+vývojový server na té adrese vrátí `index.html` a o češtinu se postará `app.js`.
 
 `src/app.js` posílá na `window` dvě události pro kód, který na stránce závisí:
 
@@ -144,8 +169,11 @@ se místo na ~55 % — to by ale byla změna designu.
 
 ### Loader a traceroute
 
-Loader drží na 100 %, dokud se scéna nezkompiluje, ale nejvýš 1,2 s — pak
-stránku odkryje a scéna se dorovná po něm. Počítadlo neztrácí krok s reálným
+Loader je krátký záměrně: stránka sama je hotová za zlomek sekundy, takže je
+to úvod, ne čekání. Počítadlo doběhne za 0,65 s, pak loader drží na 100 %,
+dokud se scéna nezkompiluje, ale nejvýš 0,6 s — pak stránku odkryje a scéna
+se dorovná po něm. Celkem tedy asi 0,8 s, nejhůř 1,4 s (do listopadu 2026
+to bylo až 2,6 s). Počítadlo neztrácí krok s reálným
 časem: v záložce otevřené na pozadí běží časovače jednou za sekundu a loader
 počítaný jen po tikách tam trval 12 s.
 
@@ -319,7 +347,7 @@ npm run dev
 ```
 
 Produkční build do `dist/` a jeho lokální náhled — to je přesně to, co pak
-poběží na Vercelu:
+poběží na Cloudflare Pages:
 
 ```bash
 npm run build
@@ -329,36 +357,42 @@ npm run build
 npm run preview
 ```
 
-Pozor na jednu věc: `npm run preview` neposílá hlavičky z `vercel.json`, takže
+Pozor na jednu věc: `npm run preview` neposílá hlavičky z `public/_headers`, takže
 CSP se v něm neprojeví. Chybu typu „Refused to load…“ lokálně neuvidíš —
 změny, které by s CSP mohly kolidovat, je potřeba ověřit na preview nasazení.
 
 ## Nasazení
 
-Web běží na <https://krystofmoravec.cz/> (Cloudflare) a nasazuje se automaticky
-z GitHubu (repozitář `morykeu/personal_web`).
+Web běží na <https://krystofmoravec.cz/> na Cloudflare Pages a nasazuje se
+automaticky z GitHubu (repozitář `morykeu/personal_web`). Do října 2026 běžel
+na Vercelu; `vercel.json` už v repozitáři není.
 
 - push do větve `main` → produkční nasazení
 - push do jiné větve nebo pull request → náhledové (preview) nasazení s vlastní URL
 
-Nastavení buildu je ve `vercel.json`, takže přebíjí to, co je v projektu na
-Vercelu naklikané:
+Nastavení buildu je v projektu na Cloudflare Pages (v repozitáři není):
 
-| Nastavení        | Hodnota          |
-| ---------------- | ---------------- |
-| Framework Preset | Vite             |
-| Build Command    | `npm run build`  |
-| Output Directory | `dist`           |
-| Install Command  | *(výchozí — `npm install`)* |
+| Nastavení              | Hodnota          |
+| ---------------------- | ---------------- |
+| Framework preset       | Vite             |
+| Build command          | `npm run build`  |
+| Build output directory | `dist`           |
 
 ### Hlavičky
 
-`vercel.json` nastavuje bezpečnostní hlavičky (`Content-Security-Policy`,
-`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
-`Permissions-Policy`) a roční `immutable` cache pro fonty a pro JS a CSS
-v `/assets/`. Ty mají v názvu hash obsahu, takže nová verze má vždy novou
-adresu a stará cache nevadí. `index.html` se cachuje výchozím způsobem
-Vercelu (pokaždé se ověří).
+`public/_headers` nastavuje bezpečnostní hlavičky (`Content-Security-Policy`,
+`Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options`,
+`Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`) a roční
+`immutable` cache pro fonty a pro JS a CSS v `/assets/`. Ty mají v názvu hash
+obsahu, takže nová verze má vždy novou adresu a stará cache nevadí.
+`index.html` se cachuje výchozím způsobem Cloudflare Pages (pokaždé se ověří).
+
+HSTS je na rok a s `includeSubDomains`: každá subdoména `krystofmoravec.cz`
+tedy musí jet po HTTPS. Bez `preload` — zápis do preload listu se špatně bere
+zpět, takže až po vědomém rozhodnutí. Přesměrování z `www` hlavičky
+z `_headers` nedostává (vyřizuje ho Cloudflare dřív, než se dostane na Pages);
+kdyby mělo HSTS posílat i ono, zapíná se v Cloudflare v *SSL/TLS → Edge
+Certificates*.
 
 CSP má u `style-src` hodnotu `'unsafe-inline'`. Není to nedbalost — stránka
 má inline `style="animation-delay:…"` přímo na prvcích SVG a `<noscript>`
@@ -371,9 +405,10 @@ jako „Refused to load…".
 
 ### Při změně domény
 
-`<link rel="canonical">` a `og:url` v `<head>`, `public/sitemap.xml`
-a řádek `Sitemap:` v `public/robots.txt` obsahují produkční adresu natvrdo,
-stejně jako `og:image`, `twitter:image` a JSON-LD. Doména je navíc vepsaná
+`<link rel="canonical">`, odkazy `hreflang` a `og:url` v `<head>`,
+`public/sitemap.xml` a řádek `Sitemap:` v `public/robots.txt` obsahují produkční
+adresu natvrdo, stejně jako `og:image`, `twitter:image`, JSON-LD a konstanta
+`ORIGIN` ve `vite.config.js`. Doména je navíc vepsaná
 přímo do náhledového obrázku (vpravo nahoře, viz níž). Při změně domény je
 potřeba přepsat všechno najednou —
 a vždy jako **absolutní** adresu včetně `https://` a koncového lomítka. Bez schématu
@@ -412,3 +447,9 @@ Stránka cílí na WCAG 2.1 AA:
 Ten poslední bod hlídá blok `<noscript>` v `<head>`. Jeho pravidla mají
 `!important` záměrně: Vite při buildu přesune hlavní stylesheet až za něj,
 takže bez toho by bez JS přetekl loader přes celou stránku.
+
+`<noscript>` ale pokrývá jen vypnutý JavaScript. Pro případ, že je zapnutý
+a `app.js` se nenačte (výpadek spojení, blokovaný požadavek) nebo spadne, je
+v `style.css` pojistka (`failsafe`): loader zmizí, stránka se odemkne a sekce
+se odkryjí samy po 6 s. `app.js` ji na posledním řádku vypne třídou `.js-ok`
+na `<html>`.
